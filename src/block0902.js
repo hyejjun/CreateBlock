@@ -105,7 +105,7 @@ function isVaildNewBlock(currentBlock, previousBlock){
 }
 
 function isVaildType(block){
-    console.log(block);
+    //console.log(block);
 }
 
 
