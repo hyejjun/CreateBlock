@@ -113,7 +113,261 @@ function isVaildNewBlock(currentBlock, previousBlock){
 }
 
 function isVaildType(block){
-    console.log(block);
+    console.log(typeof(block.header.version) === "string")           // string
+    console.log(typeof(block.header.index) === "number")             // number
+    console.log(typeof(block.header.previousHash) === "string")      // string
+    console.log(typeof(block.header.time) === "number")              // number
+    console.log(typeof(block.header.merkleRoot) === "string")        // string
+    console.log(typeof(block.body) === "object")                     // object
+    console.log('-----------------------');
 }
 
 이렇게 하고 1차 체크
+
+이렇게 해서 true 가 나오면 됨
+
+이거를 이제 조건문으로 바꿔주면 된다.
+
+그 전에 
+function isVaildType(block){
+    console.log(
+    typeof(block.header.version) === "string" &&           // string
+    typeof(block.header.index) === "number" &&            // number
+    typeof(block.header.previousHash) === "string" &&     // string
+    typeof(block.header.time) === "number" &&             // number
+    typeof(block.header.merkleRoot) === "string" &&       // string
+    typeof(block.body) === "object"                    // object
+    )
+}
+
+이게 true 가 3번 뜨는지 확인해주고
+이 조건을 다 만족해야 하니까 && 로 준것이다.
+
+잘 되면 console.log 부분을 return 으로 바꿔준다.
+다 true 면 return 으로 true 가 갈것이다.
+
+
+이제 조건문을 걸어준다
+
+function isVaildNewBlock(currentBlock, previousBlock) {
+    // false 일때만 유효하지 않다는 것을 알려준다.
+    if(!isVaildType(currentBlock)){
+        console.log(`invaild block structure ${JSON.stringify(currentBlock)}`);
+        return false
+    }
+    return true
+}
+
+${JSON.stringify(currentBlock) 
+: 결과가 오류가 났으면 내 현재 객체를 한번에 확인 할 수 있다.
+
+${JSON.stringify} 를 안하고 currentBlock 만 하면
+[object][object] 가 뜬다. - string 으로 감쌌을때 : 백틱으로 감싸면 이렇게 나옴
+그래서 얘 자체를 글자형태로 만들어주고
+객체 자체를 호출시키면 데이터 타입이 호출이 된다.
+그래서 객체를 보여주고 싶으면 string 으로 바꿔서 보여준다.
+------------
+
+두번째 조건은 index 체크
+// index 값이 유효한지 체크한다. - 만들 블럭에서 -1을 하면 이전 블럭 index 와 같아야함
+// 이전 블럭에서 +1 을 하면 만들 블럭 index 랑 같아야 함
+if (previousBlock.header.index + 1 !== currentBlock.header.index) {
+    console.log(`invaild index`);
+    return false
+}
+----------------------
+
+세번째 조건은 previousHash 체크
+: 블럭끼리 연결이 잘 되어있는지
+어떻게 체크해야 할까?
+
+어떻게 만들었는가?
+해당 블럭의 header 내용을 글자로 합쳐서 SHA256 활용하여 암호화한 결과물
+제네시스 블럭 기준으로 두번째 블럭을 체크해보자
+
+그럼 제네시스 블럭은 해쉬값이 있는가?
+자기 자신을 해쉬값으로 만들어 놓은적이 없다.
+그래서 자기 자신의 헤더를 넣어서 다시 암호화를 진행해야 한다.
+
+Hash 값을 만드는 매서드를 만든적이 있다.
+: 새로운 함수를 만들때 createHash() 를 만들었었다.
+- 이걸 활용할것이다.
+
+현재 블럭의 해쉬값이랑 이전 헤더에 있는 애들을 갖고 해쉬값을 만들어 본거랑 같은지 확인
+
+(현재 블럭의 해쉬값은 부모의 header 값을 조합해서 암호화 한 녀석이다)
+
+
+
+
+----------------------------------------
+네번째 조건
+이제 body 영역을 체크할 것이다
+: 체크하는 이유?
+우리는 지금 하나의 블록의 요소가 정확한가 아닌가를 체크하는 작업을 하고 있다.
+data의 이동이나 거래는 아직 구현을 하지 않은 상태이다
+
+data 에 있는 녀석들은 변하기가 쉬움 그래서 우리는 merkle을 사용하는 것이다
+
+우리가 머클을 만들때 data (배열) 을 넣어서 만들어주고
+머클 트리가 탄생되었다.
+이제 root() 라는 매서드를 실행하면 최상위 녀석을 갖고 있다.
+
+그래서 먼저 root 가 정확한지 체크해야 한다
+
+즉 내가 현재 만들 블럭의 
+currentBlock.header.merkleRoot  -> body [배열]
+여기서 한번 더 검증
+currentBlock.body -> merkleTree 와 root 를 만들어서 - 여기에 대한 결과물을 위에거랑 비교한다
+
+result !== currentBlock.header.merkleRoot
+
+나만 하면 검증할 필요 없는데 네트워크가 생기면 검사를 해야한다.
+지금 내가 갖고 있는 데이터가 정확한지 체크하는 것이다.
+
+그 다음에 body 가 내용이 없지는 않은지 체크하자
+내용이 없으면 안됨!!!!
+
+currentBlock.body.length !== 0 && (currentBlock.body를 가지고 만든 merkleRoot) !== currentBlock.header.merkleRoot
+이 두가지를 다 만족해야함
+
+currentBlock.body.length !== 0 && (merkle("sha256").sync(currentBlock.body).root()) !== currentBlock.header.merkleRoot
+
+
+if (!(currentBlock.body.length !== 0 && (merkle("sha256").sync(currentBlock.body).root() !== currentBlock.header.merkleRoot))) {
+        console.log(`invalid merkleRoot`);
+        return false
+    }
+
+두 줄로하면
+// Body Check - body 가 비어있는 경우
+if(currentBlock.body.length === 0){
+    console.log(`invalid body`);
+    return false
+}
+// merkel root 가 같지 않은 경우
+if(merkle("sha256").sync(currentBlock.body).root() !== currentBlock.header.merkleRoot){
+    console.log(`invalid merkelRoot`);
+    return false
+}
+
+
+------------------------------------------------
+[함수 isVaildNewBlock 의 전체 코드 - 펼쳐보기]
+function isVaildNewBlock(currentBlock, previousBlock) {
+    // currentBlock 에 대한 header, body, DataType 을 확인
+    if (!isVaildType(currentBlock)) {
+        console.log(`invaild block structure ${JSON.stringify(currentBlock)}`);
+        return false    // 이 조건이 걸리면 함수 종료 - 그래서 else if 안쓰고 if 문으로 쭉 쭉 써도 된다.
+    }
+
+    // index 값이 유효한지 체크한다. - 만들 블럭에서 -1을 하면 이전 블럭 index 와 같아야함
+    // 이전 블럭에서 +1 을 하면 만들 블럭 index 랑 같아야 함
+    if (previousBlock.header.index + 1 !== currentBlock.header.index) {
+        console.log(`invaild index`);
+        return false
+    }
+
+    // previousHash 체크
+    if (createHash(previousBlock) !== currentBlock.header.previousHash) {
+        console.log(`invalid previousBlock`);
+        return false
+    }
+
+    // Body Check - body 가 비어있는 경우
+    if(currentBlock.body.length === 0){
+        console.log(`invalid body`);
+        return false
+    }
+    // merkel root 가 같지 않은 경우
+    if(merkle("sha256").sync(currentBlock.body).root() !== currentBlock.header.merkleRoot){
+        console.log(`invalid merkelRoot`);
+        return false
+    }
+
+    return true
+}
+
+----------------------------------------
+
+전체 Blocks 에 있는 애들을 검증할 함수를 만들어주자
+1. 일단 제네시스 블럭이 유효한지, 데이터가 바뀐적이 없는지 확인
+2. Blocks 에 있는 모든 배열을 검사를 할것이다. (데이터타입/ index/ Hash/ body/ merkelRoot) Check
+현재 검사하는 시점에서 이전값과 이후값을 계속 (배열이 끝날때까지) 검사하면됨
+
+[총 배열 3개]
+1번 2번
+2번 3번
+3번 없음
+검사 끝
+
+1. 제네시스 블럭이 유효한지?
+if(Blocks[0] !== createGenesisBlock()){
+        console.log(`GenensisBlock error`)
+        return false
+}
+: 오류가 있는게... 객체와 객체를 비교할 때 어떻게 뜨냐?
+이거는 false 가 뜬다. (js 의 특성)
+제네시스 블럭은 객체 createGenesisBlock() 도 객체
+false - 비교자체가 안되서 얘네 둘 다를 string 으로 바꿔줘야 한다.
+각각 JSON.stringify() 로 감싸준다.
+
+if (JSON.stringify(Blocks[0]) !== JSON.stringify(createGenesisBlock())) {
+        console.log(`GenensisBlock error`)
+        return false
+}
+이렇게 됨
+
+---------------
+2. 모든 배열 검사
+isVaildNewBlock 로 모든 블럭을 검사해야 한다.
+(앞에 인자값과 현재 인자값이 필요함)
+
+tempBlocks 에다가 제네시스 블럭을 일단 담는다 (하드코딩이 되어있고 검사가 끝나서 넣어놓은 거임)
+
+
+for 문 안에 있는 if 문에서
+isVaildNewBlock(현재블럭, 이전블럭)
+- 여기서 true 면 유효함
+
+
+근데 isVaildBlock 은 어디다 쓰는거냐??
+네트워크가 구성되면 서버가 여러대가 있는데
+이 함수는 결국에 특정 서버가 요청하게 되면 여기서 만들었던 코드를 실행시켜야됨
+그래서 이 코드는 module 화가 되어있어야 함 - import 혹은 require 할 수 있도록
+
+-------------------------------
+내일은... 블록체인 네트워크
+
+P2P
+- 프루나
+- 당나귀
+- 소리바다
+
+얘도 사실 탈 중앙화가 되어있는...
+블록체인과 같은 개념을 갖고 있는거다.
+
+그럼 블록체인이 P2P 상위 개념이냐? 절대 아님!
+
+블록체인 네트워크를 구성한다는 것은 P2P 서버를 구성한다고 보면 된다
+
+클라이언트 - 서버의 개념도 필요 (TCP 통신하는 http 개념)
+
+그러면 P2P 는 어떻게 구축하는가?
+- websocket
+: 한번의 연결을 시도하면 클라->서버 서버->클라 
+: 서버 <-> 클라 쌍방향 통신
+
+----------------------------------------- 여기까지 끝나면 정말 간단한 블록체인//
+
+지분증명
+합의 알고리즘
+트랜젝션 - 거래
+지갑 생성
+
+이것들을 배우면 블록체인의 큰 흐름은 이해할 수 있을 것이다
+
+이거 하고 나서 실제 코인 빌드 하고
+Dapp , 솔리디티 배운다
+
+
