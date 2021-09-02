@@ -105,7 +105,13 @@ function isVaildNewBlock(currentBlock, previousBlock){
 }
 
 function isVaildType(block){
-    //console.log(block);
+    console.log(typeof(block.header.version))           // string
+    console.log(typeof(block.header.index))             // number
+    console.log(typeof(block.header.previousHash))      // string
+    console.log(typeof(block.header.time))              // number
+    console.log(typeof(block.header.merkleRoot))        // string
+    console.log('-----------------------');
+
 }
 
 
