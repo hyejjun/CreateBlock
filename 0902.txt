@@ -1,0 +1,119 @@
+addBlock    - 배열에 push 만 하는 녀석
+nextBlock   - 다음 블럭의 header 와 body를 만들어주는 함수
+
+
+// 다음 블럭의 header 와 body를 만들어주는 함수
+function nextBlock(data){
+    // data = body 에 넣어줄 임의값을 받는 매개 변수
+    // header 는 5개의 속성값이 필요함 - 그 중 이전해쉬값 이전 인덱스 값이 이전 블록 내용이 필요함
+    
+
+}
+
+[해쉬값]
+
+이전해쉬값의
+version + index + previousHash + timestamp + merkleRoot
+string 으로 묶은 다음 
+previousHash = SHA256(version + index + previousHash + timestamp + merkleRoot)
+이렇게 변환
+
+----------------------
+# [addBlock 처리]
+
+// 다음 블럭의 header 와 body를 만들어주는 함수
+function nextBlock(data){
+    // header
+    const prevBlock = getLastBlock()    // 맨 마지막 블럭의 정보를 가져옴
+    const version = getVersion()
+    const index = prevBlock.header.index+1
+    const previousHash = createHash(prevBlock)
+    const time = getCurrentTime()
+
+    const merkleTree = merkle("sha256").sync(data)
+    const merkleRoot = merkleTree.root() || '0'.repeat(64)
+
+    const header = new BlockHeader(version, index, previousHash, time, merkleRoot)
+    return new Block(header, data)
+}
+
+function createHash(block){
+    const {
+        version,
+        index,
+        previousHash,
+        time,
+        merkleRoot
+    } = block.header 
+    const blockString = version + index + previousHash + time + merkleRoot
+    const Hash = CryptoJs.SHA256(blockString).toString()
+    return Hash
+}
+
+// Blocks 에 push 하는 녀석
+// 다음 블럭을 생성할 형태는 다른 곳에 만들거임
+function addBlock(data) {
+    // data는 nextBlock 에서 오는 배열 , 인자값으로 받아줘야함
+    // 나중에 여기에 조건이 들어갈것이다. 검증하는 코드..
+    const newBlock = nextBlock(data)
+    Blocks.push(newBlock)
+}
+
+addBlock(['hello1'])
+addBlock(['hello2'])
+addBlock(['hello3'])
+
+-----------------------------------------------
+
+블럭 하나 추가하는건데 함수 하나로 안되나?
+- 나중에 추가할 부분이 있어서 함수를 쪼갠것이다.
+함수 하나에 코드가 너무 길면 좋지 않다.
+
+-----------------------------------------------
+
+[검증 단계]
+- type
+- data가 잘 맞는지
+- data에 대한 ( body 부분에 대한 검증 )
+: 검증하는 영역을 어디서 하는게 좋을까?
+
+addBlock() 함수에서 하는게 좋다.
+push 를 하기 전에 한 번 체크를 해주는것.
+만약 안에 있는 내용이 좀 이상하다 싶으면 push 를 안하면 된다.
+
+
+조건식을 만들때 필요한 데이터는?
+내가 받은 블럭
+
+if(isValidNewBlock(newBlock, getLastBlock())){
+내가 앞으로 생성할 값, 이전 블럭값
+
+그래서 isVaildNewBlock 이 함수에서 return 으로 true 를 보내주면
+push 가 되는거고 false 면 push 안됨
+
+
+function isVaildNewBlock(currentBlock, previousBlock){
+
+}
+
+1. 타입검사
+: 숫자 외의 string이 들어가면 나중에 문제가 생길 수 있다.
+: 인덱스가 숫자가 아니라 string 이다 -> 문제 생김
+: js 에서는 타입검사가 굉장히 까다로워서 함수를 따로 빼줘야 한다.
+
+
+// 내가 검사할 블럭만 받으면 됨
+function isVaildType(){}
+
+잘 되는지 체크해보자
+
+function isVaildNewBlock(currentBlock, previousBlock){
+    isVaildType(currentBlock)
+    return true
+}
+
+function isVaildType(block){
+    console.log(block);
+}
+
+이렇게 하고 1차 체크

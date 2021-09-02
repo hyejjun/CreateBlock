@@ -1,0 +1,469 @@
+# 블록체인
+
+                쌍방향 통신(P2P)
+- 네트워크 (http / socket)
+- 데이터를 저장하는 코드 (블록) (분산원장)
+    ㄴ 어떤식으로 데이터가 저장되는지?
+        하나의 문서 같은게 있다고 치면,
+        전에 있던 데이터가 어떤 곳을 바라보는지..
+        이런식으로 데이터를 연결해서 사용할 수 있도록
+        그런 데이터를 json 형태로 구현했다.
+        1 <-바라봄- 2
+
+# 데이터를 저장하는 코드에서 가장 핵심적인 내용
+1) Hash ; sha256 jwt 할때 써봤음
+            ㄴ 단방향 암호화
+                한번 암호화를 하면 복호화가 절대 안됨 + 자리수 고정
+2) 머클
+- 블록체인의 동작원리
+: 데이터 저장하는 코드 안에서...
+어떤 흐름으로 가는지..?
+-> 잘 묶여있는가? 풀리지 않았나? merkle 로 확인..
+제네시스 블록 최상위 노드이다 라고 가정했을 때 얘가 hash12345678 라고 한다면
+두개로 나눠서
+첫번째 노드는 hash1234 까지받고 두번째 노드는 hash5678 을 받는다
+그 다음은 12 /34                                56  /   78 
+그래서 특정 블럭 검증할 때 짝꿍 확인하고 위에 부분 확인..
+
+# 머클 사용 : 데이터 연결을 쉽게 찾기 위해서
+많은 노드가 있는데 이걸 하나하나 확인하면 리소스 낭비
+최소한의 노력으로 찾고자 하는걸 merkle 로 확인
+그런 알고리즘이다.
+
+merkel 은 js 에도 예제 파일 있으니까.. 찍어보자구
+
+
+3) 작업 증명 (pow)
+작업 증명을 하는 이유?
+합의 알고리즘이라는 개념이 들어간다.
+왜 합의 알고리즘이 필요한가??
+데이터를 저장하는 코드가 네트워크에 실려서 떠도는데 이게 신뢰할 수 있는건지 검증하기 위해서 필요하다.
+ㄴ 증명 방법 중 하나라고 생각하면 된다.
+검증된 데이터라는 결과를 51% 이상 받으면 된다. 그게 마이닝.. 채굴
+검증이 되었다면 보상 (비트코인) 을 받는다.
+각각의 블록체인 서버에 보내서 검증받는 작업이 마이닝이라고 생각하면 될듯
+
+--------------------------------
+데이터를 저장하는 코드 (블록)
+
+[block.js]
+http request message
+------------
+start line  |
+header      |
+            |
+body        |
+-------------
+
+
+
+MagicNumber : "0xD9B4BEF9",
+BlockSize : "4mb",
+
+이 두개는 있어도 그만 없어도 그만
+형태는 고정이 아니다.
+
+
+[객체]
+// 이런식으로 흔히 만든다.. 딱히 규약은 없지만 이런식으로 하면 된다..
+const block = {
+    header:{
+        version:"1.0.0",
+        HashPrevBlock: 0x00000000000,   // 얘는 상위블럭이 없다는 뜻 - 있으면 부모블럭을 쓰면 됨
+        HashMerkleRoot:`SHA256`,        // 암호화에 대한 내용
+        timestampe:`시간`,
+        bits:`작업증명 난이도를 정하는 숫자들`,      // 난이도를 가변적으로 바꾸는 상황이 아니면 필요는 없음
+        Nonce: `난수`                           // 4byte 숫자 .. 양수만 가능
+    },
+    body : ["hello world"]                      // body는 객체 혹은 배열로 선언할 수 있음    
+}
+
+
+-----------------------------
+src 폴더 밖에 npm init
+
+[block.js]
+1. version
+header에 넣을
+package.json의 version을 갖고오고 싶다.
+fs 를 활용하자!
+
+
+const fs = require('fs')
+
+function getVersion(){
+    const package = fs.readFileSync("../package.json")
+    console.log(package);
+}
+getVersion()
+
+이렇게 작성하고
+
+$ cd src
+$ node block
+
+그러면 처음에는 버퍼로 나온다.
+
+console.log(package.toString("utf8"));
+이렇게 바꿔주면
+
+package.json 의 내용 전체를 확인 할 수 있다.
+
+---
+JSON.parse 를 사용하면 객체로 만들어준다
+
+console.log(JSON.parse(package));
+{
+  name: '0831blockchain',
+  version: '1.0.0',
+  description: '',
+  main: 'index.js',
+  scripts: { test: 'echo "Error: no test specified" && exit 1' },
+  author: '',
+  license: 'ISC'
+}
+이러한 객체가 나온다.
+
+우리는 이중에 객체만 필요하니까
+console.log(JSON.parse(package).version);
+1.0.0
+이렇게 나온다.
+
+[버전 가져오는 방법]
+1) 방법 1
+const package = fs.readFileSync("../package.json")
+console.log(package.toString("utf8"));
+console.log(JSON.parse(package).version);
+return JSON.parse(package).version
+
+2) 방법 2
+const {version} = JSON.parse(fs.readFileSync("../package.json"))
+console.log(version);
+return version
+
+
+--------------
+# timestampe
+어떤식으로 날짜 형식을 넣냐..
+유닉스 기준일로.
+1970년 1월 1일 자정부터 0초 부터 현재 오늘날까지 총 몇초인가.
+js 구하는 방법에 대해 알아보자
+
+
+console.log(new Date());        //2021-09-01T02:16:23.830Z
+
+현재 날짜를 시간으로 바꿔주는 메서드가 있다.
+new Date().getTime()
+이렇게
+1630462649285 [ms] 
+이렇게..?
+
+1000을 나눠줘야 정확하게 얻을 수 있어서 나누면.
+new Date().getTime()/1000
+1630462699.911
+이렇게 소수점으로 나오는데
+이걸 반올림 혹은 올림을 한다.
+Math.ceil(new Date().getTime()/1000)
+
+ceil : 올림
+
+return Math.floor(new Date().getTime()/1000)
+
+이렇게 시간을 구해왔다.
+
+----------------------------
+
+[merkle.js] 생성
+실행할때는 $ node merkle
+
+sha256 설치하는 패키지 , merkle 을 만드는 패키지 총 두개 설치
+/src 안에서
+$ npm install merkletreejs
+$ npm install crypto-js
+
+
+const {MerkleTree} = require('merkletreejs')
+const SHA256 = require('crypto-js/sha256')
+
+노란색 함수
+초록색 클래스
+
+
+console.log(SHA256('ingoo'));  // 암호화할 텍스트를 넣어주면 된다
+
+{
+  words: [
+    -1592987880,
+    1046873382,
+    -1954226458,
+    -982929784,
+    1809216219,
+    422193323,
+    -606364143,
+    -1507870247
+  ],
+  sigBytes: 32
+}
+
+이렇게 나와서
+
+console.log(SHA256('ingoo').toString());
+
+a10cef183e6605268b84dee6c569ae886bd672db192a28abdbdb9e11a61fb9d9
+이렇게 바꿔준다.
+
+배열 형태로 담아서 암호화 시키기
+
+// 얘네를 담아서 암호화 시킬거다.
+const testSet = ['a','b','c'].map(v=>SHA256(v))
+console.log(testSet);
+console.log(testSet.toString());
+
+
+[MerkleTree 이용해서 암호화]
+const testSet = ['a','b','c'].map(v=>SHA256(v))
+const tree = new MerkleTree(testSet,SHA256)       // class 라서 new 써줌 (객체로 만들어줌) |  배열, 암호화할 내용들
+console.log(tree);
+
+a 는 최상위 노드 b c 를 담고 있는
+
+c 를 증명하고 싶다면 a를 봐서 연결되어있는지 증명해보기
+
+머클에는 최상위 노드 = 루트를 가져오는 매서드가 있다
+const root = tree.getRoot()
+console.log(root);
+
+그러면 <Buffer 70 75 15 2d 03 a5 cd 92 10 48 87 b4 76 86 27 78 ec 0c 87 be 5c 2f a1 c0 a9 0f 87 c4 9f ad 6e ff>
+이렇게 나온다.
+
+이거를 
+console.log(root.toString('hex'));
+그냥 toString 으로만 하면 깨짐 utf8 써도 깨짐
+그래서 hex로 한다. 그렇게 설정 되어있음
+
+근데 root 가 누군지 a 인지 b 인지 몰라.
+
+
+----
+그래서 a 를 따로 SHA256 해서 비교해보기로 하자
+
+const testRoot = 'a'    // a 가 root 인지 알아보기 위해서 비교해보자
+const leaf = SHA256(testRoot)       // a 를 SHA256 한 값
+const proof = tree.getProof(leaf)   // tree 안에서 이 값이 있는지 없는지 찾아준다
+console.log(tree.verify(proof, leaf, root));      // root 랑 비교했는데 이게 같으냐   
+
+이 값이 정확히 우리한테 있는 애냐? 그럼 증명을 하는것이다.
+데이터가 변조 되지 않았다는 뜻
+
+
+console.log(tree.toString());
+└─ 7075152d03a5cd92104887b476862778ec0c87be5c2fa1c0a90f87c49fad6eff
+   ├─ e5a01fee14e0ed5c48714f22180f25ad8365b53f9779f79dc4a3d7e93963f94a
+   │  ├─ ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb
+   │  └─ 3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
+   └─ 2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6
+      └─ 2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6
+
+이런식으로 나온다.
+
+머클 - 사용하는 이유: 변조가 됐는지 아닌지 확인하는 것
+
+-------------
+
+npm install merkle
+
+실질적으로는 merkle tree 가 아니라 그냥 merkle 사용할거임
+
+[block.js]
+const merkle = require('merkle')
+const CryptoJs = require('crypto-js')
+
+
+/* merkle 사용법 
+sync 안에는 배열만 (배열안에 객체는 가능)
+return이 tree구조로 나온다.
+const tree 로 담고 이거를 tree.root() 하면 root 애를 가지고 온다.
+*/
+const tree = merkle("sha256").sync(['aaaa'])
+tree.root() 
+
+-------------------------------------
+이제 header body 내용 만들어야하고
+1차 목표는 제네시스 블럭을 만드는 것
+
+실습에서는 bits 는 빼겠다..!
+
+최소기능 / 개념을 이해할 수 있을 정도만 해봅시다
+Nonce 는 index로 대체 해서 해보겠다.
+그래서 header 에는 5개를 넣어보자
+
+[block.js]
+class 생성
+
+# 헤더 만들기
+class BlockHeader {
+    constructor(version, index, previousHash, time, merkleRoot) {
+        this.version = version      //  1 new 생성자를 통해서 this.version 은 {version:1} 이렇게 된다
+        this.index = index          // 2 {version:1, index : 2}
+        this.previousHash = previousHash
+        this.time = time
+        this.merkleRoot = merkleRoot
+    }
+}
+
+const header = new BlockHeader(1,2,3,4,5)   // new 를 사용해서 객체로. 가라데이터
+const header2 = new BlockHeader(1,2,3,4,5)  // 2개를 만들고 싶다면
+console.log(header, header2);
+
+이런식으로 나온다
+
+/* header 
+{
+    version : 1,
+    index : 2,
+    previousHash : 3,
+    time : 4,
+    merkleRoot : 5
+}
+이렇게 될것이다.
+
+*/
+
+붕어빵 틀이다...
+
+func : fucn()
+함수도 넣을 수 있다.
+
+
+-------
+
+class Block {
+    constructor(header,body){
+        this.header = header,       //BlockHeader 에서 만든값을 넣겠다. 객체 안에 객체가 들어가게 된다.
+        this.body = body
+    }
+}
+
+[예시]
+const blockchain = new Block(new BlockHeader(1,2,3,4,5),['hello'])
+console.log(blockchain);
+
+Block {
+  header: BlockHeader {
+    version: 1,
+    index: 2,
+    previousHash: 3,
+    time: 4,
+    merkleRoot: 5
+  },
+  body: [ 'hello' ]
+}
+
+이렇게 나올 것이다.
+
+
+여기에 올바른 객체를 넣으면 그게 바로 제네시스 블럭이다.
+
+
+하나의 노드 / 블럭을 생성한것이라고 보면 된다.
+
+최초의 생성은 제네시스 블럭이라고 봐야함
+
+---------------
+# 제네시스 블럭을 만드는 함수를 만들어보자
+
+1. header 만들기 - 5개의 인자값을 만들어야 한다.
+
+function createGenesisBlock(){
+    // 1. header 만들기 - 5개의 인자값을 만들어야 한다.
+    const version = getVersion()    // 1.0.0
+    const index = 0                 // 제네시스는 0 으로
+    const time = getCurrentTime()   // 함수로 만들어 놓은것 가져옴
+    const previousHash = '0'.repeat(64)    // 이전 해쉬값 근데 제네시스는 이전이 없다 sha256으로 넣어줘야하는데 만들 데이터가 없다.. -0을 64번 넣어줘야 한다
+    
+    const body = ['hello block']
+    const tree = merkle('sha256').sync(body)              // merleRoot 는 body 에 있는 내용이 필요하다. - 그래서 body 먼저 선언해줌
+    const root = tree.root()|| '0'.repeat(64)            // 만약 body 내용이 없다면 0 을 64 번
+    
+    const header = new BlockHeader(version,index,previousHash,time,root)
+    return new Block(header,body)
+}
+const block = createGenesisBlock()
+console.log(block);
+
+[결과]
+Block {
+  header: BlockHeader {
+    version: '1.0.0',
+    index: 0,
+    previousHash: '0000000000000000000000000000000000000000000000000000000000000000',
+    time: 1630467088,
+    merkleRoot: '725C20214587B0DCD5FBF0DCA637904A97A142E89F4A06F55F6B191E333F6B1C'
+  },
+  body: [ 'hello block' ]
+}
+
+-> 제네시스 블럭을 생성하는것까지 완성이 되었다.
+
+------------
+# 이제 다음 블럭을 생성하는 루틴을 해보자
+- 이게 코드가 길다
+
+이때부터는 검증 , 데이터 타입을 신경쓰면서 만들어야 한다
+--------
+
+# 연결리스트 형태로 블럭을 나열할것이다.
+순차적으로 만들거라는 얘기!!
+
+블럭을 생성할 때마다 배열에 집어넣는거를 해보자
+
+전역변수로 배열을 하나 선언한다.
+
+let Blocks = [createGenesisBlock()]
+console.log(Blocks) // 앞으로 볼때는 얘를 보면 됨
+
+
+# 블럭을 추가해주는 거를 간략하게 해보자
+: 전역변수로 선언한 곳에 push 하는 것
+function addBlock(){
+    // 우선 class 사용 new header -> new block (header, body) 를 해야겠군    
+}
+index 는 맨마지막에 있는 녀석에 +1 해주면 된다.
+다음에 들어갈 index 값을 줄 수 있다.
+
+해쉬값은 이전에 있는 블럭 가져와야 하고 header 정보 가져와야 하고 string 으로 연결할 줄 알아야함
+
+time 은 getCurrentTime 함수 사용
+
+merkleRoot  body 를 가지고 다시한번 root 생성하면 된다.
+
+# 마지막 블럭을 가져오는거!!!
+Blocks 를 사용해서.. 여기에 블럭이 추가될때 마다 여기에 추가됨
+배열의 마지막 녀석을 가져올 수 있는 방법 : Blocks[Blocks.length -1]
+
+
+Blocks[Blocks.length -1].header.index
+
+
+여기까지
+제네시스 블록을 만들었다
+전체 블럭을 배열로 관리하기로 하고
+addBlock 을 통해서 함수가 하나 더 증가 할때 블럭에 push 를 해줘야 한다.
+BlockHeader 와 Block 을 재사용해야 하는데 
+index 값과 previousHash 값이 바뀐다
+이전 해쉬값 : 마지막 블럭의 헤더에 있는 내용을 스트링으로 연결시켜서 sha256 으로 넣어야 한다.
+addBlock 을 했을 때 다음블럭이 생성될 수 있도록 ..
+
+
+[해쉬값은 부모의 정보를 담고 있다고 봐야 함]
+전에 갖고 있는 키값
+헤더 에 있는 인덱스... 여러 값들을 스트링으로 연결해서
+sha256 으로 64 개로 줄여준다 이전 헤더에 대한 압축정보
+그래서 검증....
+
+이전에 있는 헤더값들을 다 스트링으로 바꾼다.
+그거를 sha256으로 암호화 하면 64글자로 줄어든다
+그 값을 만들어서.
+
+이전 해쉬값의 헤더값에 넣었던 총 5가지
+이 5가지를 스트링으로 바꿔서 더해서 sha256으로 암호화 시켜서 64 글자로 바꿔준다.
