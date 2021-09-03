@@ -1,43 +1,30 @@
-const fs = require('fs')        // file system library 가져오고
+const fs = require('fs')
 const merkle = require('merkle')
 const CryptoJs = require('crypto-js')
-const SHA256 = require('crypto-js/sha256')
 
-
-// const tree = merkle("sha256").sync(['aaaa'])
-// tree.root() 
-
-// 헤더 만들기
 class BlockHeader {
-    constructor(version, index, previousHash, time, merkleRoot) {
-        this.version = version      //  1 new 생성자를 통해서 this.version 은 {version:1} 이렇게 된다
-        this.index = index          // 2 {version:1, index : 2}
+    constructor(version, index, previousHash, time, merkelRoot) {
+        this.version = version
+        this.index = index
         this.previousHash = previousHash
         this.time = time
-        this.merkleRoot = merkleRoot
+        this.merkelRoot = merkelRoot
     }
 }
 
 class Block {
     constructor(header, body) {
-        this.header = header,       //BlockHeader 에서 만든값을 넣겠다. 객체 안에 객체가 들어가게 된다.
-        this.body = body
+        this.header = header,
+            this.body = body
     }
-}
-
-let Blocks = [createGenesisBlock()]
-
-function getBlocks() {
-    // 나중에 쓸거임 
-    return Blocks
 }
 
 
 function getLastBlock() {
-    return Blocks[Blocks.length - 1]    // 배열의 마지막 원소를 가져옴   
+    return Blocks[Blocks.length - 1]
 }
 
-
+let Blocks = [createGenesisBlock()]
 
 function createGenesisBlock() {
     const version = getVersion()
@@ -53,7 +40,7 @@ function createGenesisBlock() {
     return new Block(header, body)
 }
 
-// 다음 블럭의 header 와 body를 만들어주는 함수
+
 function nextBlock(data) {
     // header
     const prevBlock = getLastBlock()    // 맨 마지막 블럭의 정보를 가져옴
@@ -82,14 +69,11 @@ function createHash(block) {
     return Hash
 }
 
-// Blocks 에 push 하는 녀석
-// 다음 블럭을 생성할 형태는 다른 곳에 만들거임
 function addBlock(data) {
     const newBlock = nextBlock(data)
     if (isVaildNewBlock(newBlock, getLastBlock())) {
         Blocks.push(newBlock)
-        // return true;    // 함수를 여기서 끝나게 하고
-        return newBlock;
+        return true;    // 함수를 여기서 끝나게 하고
     } return false;     // 함수를 종료시켜라
 
 }
@@ -97,8 +81,6 @@ function addBlock(data) {
 addBlock(['hello1'])
 addBlock(['hello2'])
 addBlock(['hello3'])
-
-/* etc */
 
 function isVaildNewBlock(currentBlock, previousBlock) {
     // currentBlock 에 대한 header, body, DataType 을 확인
@@ -134,6 +116,7 @@ function isVaildNewBlock(currentBlock, previousBlock) {
     return true
 }
 
+
 function isVaildType(block) {
     return (
         typeof (block.header.version) === "string" &&           // string
@@ -143,6 +126,25 @@ function isVaildType(block) {
         typeof (block.header.merkleRoot) === "string" &&       // string
         typeof (block.body) === "object"                    // object
     )
+}
+
+
+function isVaildBlock(Blocks){
+    if (JSON.stringify(Blocks[0]) !== JSON.stringify(createGenesisBlock())) {
+        console.log(`GenensisBlock error`)
+        return false
+    }
+
+
+    let tempBlocks = [Blocks[0]]
+    for (let i = 1; i < Blocks.length; i++) {
+        if (isVaildNewBlock(Blocks[i], tempBlocks[i - 1])) {
+            tempBlocks.push(Blocks[i])
+        } else {
+            return false
+        }
+    }
+    return true
 }
 
 
@@ -158,33 +160,4 @@ function getCurrentTime() {
 
 
 
-/* 전체 배열 검증 */
-function isVaildBlock(Blocks) {
-    // 제네시스 블럭이 유효한지?
-    if (JSON.stringify(Blocks[0]) !== JSON.stringify(createGenesisBlock())) {
-        console.log(`GenensisBlock error`)
-        return false
-    }
-
-    // Blocks 총 3개 있는데
-    // 1부터 3까지 반복 - 총 두번이 도는 for 문 - 첫번째는 검사하지 않기 위해 i=1 부터
-    let tempBlocks = [Blocks[0]]
-    for (let i = 1; i < Blocks.length; i++) {
-        if (isVaildNewBlock(Blocks[i], tempBlocks[i - 1])) {
-            tempBlocks.push(Blocks[i])
-        } else {
-            return false
-        }
-    }
-    return true
-}
-
-// console.log(Blocks);
-
-
-module.exports ={
-    getBlocks,
-    getLastBlock,
-    addBlock,
-    getVersion,
-}
+console.log(Blocks);

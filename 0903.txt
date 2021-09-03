@@ -1,0 +1,341 @@
+P2P 구현하려면
+websocket 사용해야 한다
+node js 에서 websocket 사용해본 적 있음 - 이때 사용했던 패키지 : socket.io
+socket.io 는 연결만해주는게 아니라.. broadcast 같은 기능이 됨..
+-> ws 패키지..
+
+socket.io 말고 우리는 socket 으로 사용할것이다.
+
+socket.io 를 썼던 이유는 기본 기능외 여러가지가 만들어져 있다. - 그래서 초보에게 좋음
+반면 ws 는 접속에 대한 것만 해주고 다른거는 우리가 구현해야 한다 ex) broadcast, to 같은것들..
+
+그 웹서버 구축의 기초 작업 - 세팅만 해보자!
+
+[server.js]
+express 환경 
+$ npm i express
+포트는 많이 바뀌니까 환경변수에 넣는것도 좋은 방법
+
+// window
+선언 : set 변수명=값
+확인 : set 변수명
+
+// 리눅스
+선언 : export 변수명=값
+확인 : env | grep 변수명
+
+
+[환경변수 선언]
+src 안에서 
+$ set PORT=3001
+-> 이거 안됨
+근데 터미널을 powershell 말고 Command Promport 사용하면 될지도
+
+나중에 배포할 때 리눅스 서버서만 환경변수했던 값으로 넣어주면 됨
+
+
+웹서비스를 만든 이유는
+: 블록 가져오기 
+peer 블록을 돌려줄 사람 
+을 추가할때 쓰려고 웹서비를 만들었다.
+
+
+
+-------------------------
+//블록의 버전 가져오기 - package.json - 이거 block0902.js 에서 export 됐을거임
+
+const {getVersion} = require('./block0902')
+
+혹은 
+const bc = require('./block0902')
+
+이렇게 해도 된다
+그러면 bc.getVersion() 이렇게
+
+--------
+통신위해 bodyParser 사용
+$ npm i body-parser
+const bodyParser = require('body-parser')
+app.use(bodyParser.json())
+
+app.get('/blocks',(req,res)=>{
+    res.send(bc.getBlocks())    // 그냥 배열을 출력해주는 녀석
+})
+
+
+이걸 테스트해보고 싶을때 어떻게 해야할까?
+- 굳이 브라우저가 아니여도 된다.
+
+- 팽귄 키고 (wsl)
+$ curl -X GET http://localhost:3000/blocks
+
+파이썬이 깔려있다면
+$ curl -X GET http://localhost:3000/blocks | python3 -m json.tool
+
+파이썬에 있는 json 툴을 사용할거야 라고 한거임
+즉 리눅스 쉘에 있던 결과물을 가지고 파이썬 툴을 이용해서 정렬해서 보여준것
+
+아니면 postman 을 사용해도 된다.
+아니면 webget 이란 패키지 사용
+
+
+---------------
+# 버전 출력하기
+getVersion() 
+
+app.get('/version',(req,res)=>{
+    res.send(bc.getVersion())
+})
+
+
+$ curl -X GET http://localhost:3000/version
+으로 확인 가능
+
+--------------------
+
+데이터 입력하는거 (배열에다가 추가하는)
+
+
+function addBlock(data) {
+    const newBlock = nextBlock(data)
+    if (isVaildNewBlock(newBlock, getLastBlock())) {
+        Blocks.push(newBlock)
+        // return true;    
+        return newBlock;    // 이렇게 바꿔주고
+    } return false;     
+}
+
+// 이 함수의 목적 : Blocks 배열에 우리가 만든 객체를 추가하는것
+app.post('/mineBlock',(req,res)=>{
+    const data = req.body.data      // 배열형태의 data를 받아오고
+    const result = bc.addBlock(data)   // 그러면 {} 또는 false 값이 반환될 것이다.
+    if(result == false){
+        res.send(`mineBlock failed`)
+    }else{
+        res.send(result)
+    }
+})
+
+팽귄에서 
+$ curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"Hello world!\"]}"
+혹은
+$ curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"Hello world\"]}" | python3 -m json.tool
+{"header":{"version":"1.0.0","index":5,"previousHash":"db5834bd6e0083e63262d848a46550c43c38a56a3eb2d9fa90256c2e38aa6dd6","time":1630637230,"merkleRoot":"64EC88CA00B268E5BA1A35678A1B5316D212F4F366B2477232534A8AECA37F3C"},"body":["Hello world"]}
+
+curl : http 통신을 할것이다
+- : 옵션
+1) -X  : request msg (POST, GET ...)
+2) -H : JSON 형태로 보낼거야. 배열형태인지 어떤지 - 이때는 json 형태로 보내주는게 좋다
+        "Content-Type : application/json"
+3) -d : (data의 약자) body 에 내용 채워서 여기에 들어가는 변수는 req.body.변수 이 부분임
+        \"\" data 를 보여주기 위한 따옴표는 이렇게 역슬레쉬 써줘야함
+
+--------------------------
+
+프로세스 종료하기
+Ctrl + C 로 많이 끄는데 그러면 내가 직접 거기 까지 가야 하는데 원격으로 끄는 방법은 없으까?
+
+// 프로세스 종료하기
+app.get('/stop',(req,res)=>{
+    res.send('server stop')
+    process.exit(0)
+})
+
+$ curl http://localhost:3000/stop
+
+이렇게 하면 서버가 꺼지는 것을 확인 할 수 있다
+
+---------------------------------------
+여기까지 클라이언트 서버 마무리
+
+--------------------------------
+여기부터 소켓서버?
+src/network.js 생성
+$ npm i ws
+
+
+웹소켓을 클라 서버의 포트와 다르게 사용할 것이다.
+- 이게 기본 베이스
+
+하나의 node js 환경이 크게 있다면
+express 가 안에서 돌아가고 
+그 옆에 express 에 살짝 걸쳐서 ws : websocket 이 실행되는 느낌
+
+컴퓨터에 두가지 프로그램을 깔았다고 보면 된다.
+
+소켓 만드는 코드 작성해보자
+
+// 전역변수 
+let sockets = []
+
+소켓에 연결된 사람들 : peer
+웹소켓에 접속한 사람들 내역을 담은 배열이 sockets 이다.
+
+
+function getSockets(){
+    return sockets
+    // 배열에 담긴 사람이 누군지 list 를 보기 위해서 만든 함수
+    
+}
+애로우 함수 안쓰는 이유 - 소켓은 이벤트적인 코드를 많이 작성한다
+근데 js 에서는 이벤트는 비동기다, 
+그래서 코드가 Object.on('message',()=>{})
+계속 콜백이 들어가니까 콜백 지옥이 될까봐
+그리고 밑에 선언하고 위에서 호출이 어려워서 그래서 안하는것 
+
+
+
+// 최초의 접속
+function wsInit(){
+    const server = new WebSocket.Server({port:wsPORT})
+}
+내 자신이 host 로 포트를 열겠다.
+
+server.on  : 메시지를 받을 수 있는 형태
+첫번째 인자값은 메시지 스트링값
+어떤 메시지를 받을 때 함수를 실행시키겠다
+
+// 최초의 접속
+function wsInit(){
+    const server = new WebSocket.Server({port:wsPORT})
+    /*
+        server 내가 받은 소켓
+        server.on('특정메시지',()=>{console.log('hu')})
+        특정메시지가 떨어지면 콜백함수를 실행하겠다
+        connetion 이 완료가 되었으면 뒤의 함수를 실행하겠다
+    */
+    server.on("connection",(ws)=>{
+        console.log(ws);
+        init(ws)
+    })
+}
+
+function init(ws){
+    sockets.push(ws)      // sockets 이라는 전역변수에 push를 한다
+}
+
+----------
+
+function write(ws,message){
+    we.send(JSON.stringify(message))
+}
+어떤 소켓에서 메시지를 만들어서 보내는데
+어떤 데이터를 보낼거냐 메시지를 넣을건데 객체를 글자로 바꿔서 보내준다
+
+[12:35 이쯤 강의 다시 봐야할듯...]
+
+
+
+# broadcast
+ws 여기서는 구현이 안되어있음
+
+블록이 추가되거나 이러면 나 이외에 다른 블록에게 정보를 던져야하기 때문에 broadcast 가 필요하다
+
+[code]
+
+function broadcast(message){
+    sockets.forEach(socket=>{
+        write(socket,message)   //나 자신에게 메시지를 보내겠다
+    })
+}
+
+
+- 여기서 하는 broadcast 는 나 포함의 broadcast
+
+모든 사람에게 메시지를 보내겠다
+매개변수로 받고 
+소켓 전역변수에잇는 내용들을 다 꺼내온다
+
+--------------
+
+내 소켓에 접속할 수 있는 사람들..
+매개변수.. 배열로 받을 수 있게끔..
+function connectionToPeers(newPeers){
+    newPeers.forEach(peer=>{
+        // 접속만 하면 된다 - string type으로 주소값이 들어갈 것이다.
+        // 주소값 : ws://localhost:7001 - 통신 규약이 달라서 http 가 아니라 ws 로 온다
+        const ws = new WebSocket(peer)  // 얘는 도메인 주소까지 받아서 처리, 웹소켓 자체를 실행 아까 Server 까지 실행한거랑은 다르다.
+        ws.on('open',()=>{init(ws)})       // 접속 한 뒤 한번 열어, 그게 완료가 되면 전역변수에다가 추가
+        ws.on("error",()=>{console.log('connection failed');})               // error 가 나는 경우 처리
+    })
+}
+
+생성- 연결 - 전역변수에 넣는 함수
+uri를 받아서 이 함수가 실행될 수 있도록한다.
+
+즉 http 가 중간다리 역할을 해줌
+
+------------------------------------------+
+
+
+express 가 실행이 되면 port 3000번의 코드가 구동 된다.
+
+[server.js]
+에서
+const ws = require('./network')
+ws.wsInit()
+
+이렇게 해서 3000번 포트가 열릴때 웹소켓 서버도 열리게함
+
+테스트
+
+$ node server
+
+-------------------------
+
+동료를 만들 수 있는 코드 작성
+express 는 client 역할
+websocket 은 server 측 코드 
+느낌이 난다..
+--------------------------
+// peer -> 현재 가지고 있는 소켓리스트 getSockets   GET
+app.get('/peers',(req,res)=>{
+    res.send(ws.getSockets().map(socket=>{
+        return `${socket._socket.remoteAddress} : ${socket._socket.remotePort}`;
+    }))       // 배열을 return 받음 -> 다시 배열로 반환을 해줌
+})
+
+서버 껐다가 키고
+$ curl http://localhost:3000/peers
+------------------------------
+
+// addPeers -> 내가 보낼 주소값에 소켓을 생성하는 작업 connectToPeers   POST
+// connectiontoPeers 를 받으려면 배열로 선언이 되어야함
+// data 형식은 json 형태 
+app.post('/addPeers',(req,res)=>{
+    const peers = req.body.peers // || [] 이거까지 써주면 예외처리까지 하는거임
+    ws.connectionToPeers(peers)
+    res.send('success')
+})
+
+서버 껐다키고
+$ curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:7001\",\"ws:localhost:7002\"]}" http://localhost:3000/addPeers
+
+팽귄에서는 success 가 나왔지만
+서버 파워쉘에서 
+connection failed 가 나온 이유는??
+우리한테 실행된 ws 7001 , 7002 번이 없기 때문이다.
+그래서 테스트 해보려면 내 컴퓨터에서 ws로 7001 7002 번이 열려야함
+
+이 흐름...
+이해 안됨... ㅋ
+
+하 ㅜㅜㅜ
+
+server.js  network.js
+3001 and 7001로 묶어서
+
+그러고 팽귄에 한번 더 써주고
+
+node 3000 번 껐다가 키면 실패가 한번만 뜬다
+
+curl http://localhost:3000/peers 
+해보면 배열이 차있는걸 확인 할 수 있다.
+
+
+--------------------------------
+############ 과제 #############
+주말동안 ws 만들어보는데
+이번에 썼던 패키지로 채팅을 한번 만들어보기
+인터넷에 많을듯.
+이해 못하고 따라치더라도 이해력이 올라갈 수 있음
