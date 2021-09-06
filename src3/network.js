@@ -1,6 +1,6 @@
 // npm install ws
 const WebSocket = require('ws')
-const wsPORT = process.env.WS_PORT || 6005
+const wsPORT = process.env.WS_PORT || 6006
 const bc = require('./block0902')
 
 // 전역변수 
@@ -119,7 +119,7 @@ function wsInit() {
         connetion 이 완료가 되었으면 뒤의 함수를 실행하겠다
     */
     server.on("connection", (ws) => {
-        console.log(ws);
+        //console.log(ws);
         init(ws)    // 소켓 키 값
     })
 }

@@ -18,9 +18,10 @@ app.get('/version',(req,res)=>{
 // 이 함수의 목적 : Blocks 배열에 우리가 만든 객체를 추가하는것
 app.post('/mineBlock',(req,res)=>{
     const data = req.body.data      // 배열형태의 data를 받아오고
-    const result = bc.addBlock(data)   // 그러면 {} 또는 false 값이 반환될 것이다.
-    if(result == false){
-        res.send(`mineBlock failed`)
+    const result = bc.mineBlock(data)   // 그러면 {} 또는 false 값이 반환될 것이다.
+    if(result == null){
+        //res.send(`mineBlock failed`)
+        res.status(400).send(`블럭 추가에 오류가 발생됨`)
     }else{
         res.send(result)
     }
