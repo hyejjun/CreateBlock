@@ -2,6 +2,7 @@ const fs = require('fs')        // file system library 가져오고
 const merkle = require('merkle')
 const CryptoJs = require('crypto-js')
 const SHA256 = require('crypto-js/sha256')
+const random = require('random')
 
 
 // const tree = merkle("sha256").sync(['aaaa'])
@@ -21,7 +22,7 @@ class BlockHeader {
 class Block {
     constructor(header, body) {
         this.header = header,       //BlockHeader 에서 만든값을 넣겠다. 객체 안에 객체가 들어가게 된다.
-        this.body = body
+            this.body = body
     }
 }
 
@@ -29,7 +30,7 @@ let Blocks = [createGenesisBlock()]
 
 function getBlocks() {
     // 나중에 쓸거임 
-    return Blocks
+    return Blocks   // 배열로 리턴됨
 }
 
 
@@ -82,21 +83,33 @@ function createHash(block) {
     return Hash
 }
 
-// Blocks 에 push 하는 녀석
+// Blocks 에 push 하는 녀석 - 여기서 검증함
 // 다음 블럭을 생성할 형태는 다른 곳에 만들거임
-function addBlock(data) {
-    const newBlock = nextBlock(data)
+function addBlock(newBlock) {
+    // 앞으로 추가할 데이터를 검증하는 곳
     if (isVaildNewBlock(newBlock, getLastBlock())) {
         Blocks.push(newBlock)
-        // return true;    // 함수를 여기서 끝나게 하고
-        return newBlock;
+        return true;    // 검증 성공
     } return false;     // 함수를 종료시켜라
 
 }
 
-addBlock(['hello1'])
-addBlock(['hello2'])
-addBlock(['hello3'])
+function mineBlock(blockData){
+    const newBlock = nextBlock(blockData)        //새로운 객체를 가진, Object Block {header, body}
+    // 블럭을 만들려면 전역배열에다 넣어줘야함. 검증은 addBlock 이 대신해줄것
+    // addBlock 도 매개변수 받는걸로 nextBlock을 쓴다.
+    // 그래서 addBlock 은 newBlock을 받아서 하는거로 바꿔준다
+    if(addBlock(newBlock)){
+        // 모든 peer 에게 블록이 추가 되었으니 마지막거를 확인하라고 broadcast로 날려줘야 한다
+        const nw = require('./network')
+        nw.broadcast(nw.responseLastMsg())
+        return newBlock
+    }else{
+        return null
+    }
+}
+
+
 
 /* etc */
 
@@ -145,6 +158,29 @@ function isVaildType(block) {
     )
 }
 
+function replaceBlock(newBlocks) {
+    /*
+        1. newBlocks 내용을 검증해야 한다. - 가져다 쓰면 된다. isVaildBlock
+        2. 검증을 한번만 하지 않는다. 렌덤하게 한번만 할 수 있고, 두번 혹은 세번을 할 수 있게 한다.
+        3. 검증이 끝나면 Blocks = newBlocks 로 바꿔주고
+        4. 그 다음에 여기서 broadcast 한다.
+    */
+    // 이걸 하는 이유 : 내가 받은 블럭이 더 최신이라서
+    // 이중으로 체크해준다 내가 받은 블럭이 더 길이가 긴지 (더 최신인지)
+    if (isVaildBlock(newBlocks) && newBlocks.length > Blocks.length && random.boolean()) {
+        // 여기가 3번
+        console.log(`Blocks 배열을 newBlocks 로 교체합니다`)
+        // 여기가 4번
+        // block.js 에서 broadcast 사용할 수 있나? - 사용가능!
+        // network.js 에서 broadcast를 모듈화 했냐는것? - 했음..
+        const nw = require('./network')
+        Blocks = newBlocks
+        nw.broadcast(nw.responseLastMsg())
+    } else {
+        console.log(`메시지로부터 받은 블록배열이 맞지 않습니다`)
+        // 여기까지 1, 2번을 한것.
+    }
+}
 
 function getVersion() {
     const { version } = JSON.parse(fs.readFileSync("../package.json"))
@@ -182,9 +218,12 @@ function isVaildBlock(Blocks) {
 // console.log(Blocks);
 
 
-module.exports ={
+module.exports = {
     getBlocks,
     getLastBlock,
     addBlock,
     getVersion,
+    mineBlock,
+    createHash,
+    replaceBlock
 }

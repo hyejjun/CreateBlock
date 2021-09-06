@@ -1,0 +1,481 @@
+websocket 과 socket.io 의 차이점
+socket 은 컴퓨터가 갖고있는 기본기능..
+
+컴퓨터와 컴퓨터가 서로 연결되는 과정
+
+계층이라는게 존재한다.
+http : 응용프로그램적인 연결
+socket : 물리적인 연결
+
+http : 한번의 요청 - 한번의 응답
+규칙이 있는....
+
+# socket.io
+예전에는 http 통신을 소켓통신처럼 보이게끔 해준녀석이였는데
+long calling 방법...
+ㄴ 웹소켓
+롱콜링도 브라우저별로 처리 방법이 달라서 한 라이브러리를 사용하되 브라우저 별로 다르게 만들어놓고 사용을 했었다..
+근데 이제는 브라우져에 socket.io 기능이 탑재 되어 있어서
+그냥 사용가능함
+
+오래됨
+socket.io > websocket
+
+ws -> 정통적인 웹소켓
+기본적으로 소통만 해주는 역할이 있다..!
+
+ㄴ 하나하나 다 조작해야 해서 어렵다... ㅜㅜ
+redux... 같은 개념이다...?
+----------------------------------------
+두개의 서버. 접속만 되게끔 했었는데
+서로의 정보를 공유할 수 있게 해보자
+
+
+curl -X POST -d "{data:"hello"}" http://localhost:3000/addPeers  (연결)
+이런식으로 하면
+server 1 에 블럭이 추가됨..?
+서버 연결을 시켜놓고
+서로 웹소켓으로 연결이 되게끔 처리를 해놓으면
+연결 시도를 한다.
+그러면 server2 가 체크를 한다
+server1의 블록과 server2의 블록이 같은가? 다른가?
+- 임의로 server1의 블럭이 추가되어있는 상황이라서 다르다.
+- 검토를 한다 (제네시스 블록 제외하고 검토함)
+- 그 다음에 다른 부분을 찾아서 바꿔준다.
+- 연결할때 블럭을 2개로 바꿔준다. (server2)
+
+연결이 된 상태에서 server1에 블럭을 추가하게 되면 server2에도 보내준다.
+마찬가지로 server2에서 블럭 4개로 만들면 server1에서도 하나 추가가 된다.
+
+[웹소켓으로 데이터를 양산으로 똑같이 뿌려놓는다 - 이래야 합의가 가능해지니까]
+
+목적 : server1에서 server2
+연결 요청 - 연결완료 되면 server2도 똑같은 블록을 가질 수 있도록...
+server1에서 추가되면 server2에서 추가되게
+-------------------------------------------
+
+
+src2 폴더를 완전히 삭제하기!!
+
+
+코드 형태를 redux 랑 많이 흡사할 것이다.
+
+[network.js]
+
+const MessageAction = {
+    QUERY_LAST : 0,
+    QUERY_ALL : 1,
+    RESPONSE_BLOCK : 2,
+}
+
+// reducer를 만들겁니다
+function initMessageHandeler(ws){
+    // 실행할 소켓쪽 - 서버쪽 내용을 보면 됨 - ws 를 주는곳은 init 부분
+}
+
+function init(ws){
+    sockets.push(ws)
+    initMessageHandeler(ws)
+}
+
+여기 코드의 시작은 어디일까?
+
+이 파일은 모듈로 빼놨다.
+server.js 에서 실행이 되도록..
+
+ws.wsInit() 이 최초의 실행이 된다.
+
+함수르 따로 빼놓으니까
+코드가 뭐가 먼저 실행되는지 알기가 힘들다
+
+[network.js]
+
+function wsInit(){}
+이 부분을 보면
+결과물이 server 라는 변수에 들어간다.
+server. .이 붙으면 객체라는 것
+그 안에 on이라는게 들어간다.
+connection 이라는것은 최초의 접속이 되었을때 실행되는 메시지
+그 연결된 통로를 ws 에 담은 것이다.
+핸드쉐이크 요청 보내면 클라가 응답을 보낸다 그럼 그제서야 connection 이란 메시지가 옴
+서로 연결되어 있던 key 값을 ws라는 변수에 담는것이다.
+즉 ws 는 server 와 client 간에 연결된 key 값이다
+init(ws) // 소켓 키 값
+
+function init(ws){
+    sockets.push(ws)    // 배열에 담음 - 누가 접속해 있는지
+    initMessageHandeler(ws) // 접속이 되어있는데 뭘할건지... 그걸 관리해주는 함수
+}
+
+initMessageHandeler
+: 소켓 키 값에 따라 함수 안에서 처리 할 수 있도록 할 것이다.
+블록들을 합치고 검증하고...
+
+
+QUERY_LAST
+QUERY_ALL
+RESPONSE_BLOCK : 실질적으로 추가할 지 말지 결정하는 매서드
+
+
+
+ws.on("이벤트명",이벤트의 결과를 리턴해주는 결과페이지)
+
+
+ws.on("message",data=>{
+        
+})
+
+여기서 data는 객체 형태를 담고 있는 결과값이다.
+{
+    type : ""
+    data : ""
+}
+
+이렇게 할 것이다.
+
+type에 따라서 data 의 내용이 바뀔 수 잇도록
+
+const message = JSON.parse(data)
+데이터 통신은 무조건 스트링으로 한다.
+근데 우리가 사용할 때는 객체이기 때문에 변환을 해줘야한다.
+
+
+이 안에 총 3가지 케이스가 있다.
+
+---------------
+
+function init(ws) {
+    sockets.push(ws)
+    initMessageHandeler(ws)
+    initErrorHandeler(ws)
+}
+
+initErrorHandeler 추가
+
+
+function initErrorHandeler(ws){
+    ws.on("close",()=>{})       // 서버 종료
+    ws.on("error",()=>{})       
+}
+function closeConnection(ws){
+    console.log(`Connection close ${ws.url}`)
+    // 내 배열에서 내가 연결된 부분을 지우도록한다.
+    sockets.slice(sockets.indexOf(ws),1)    // 내 키값 기준으로 찾고 하나를 자른다.
+}
+
+
+다시 initMessageHandeler 이 쪽으로 가서
+
+function write 을 사용할 것이다.
+
+write(ws,{})    // 얘가 dispatch 라고 가정해보면 두번째 인자값에 객체를 리턴해주는 함수를 넣어주는것이다
+
+
+case MessageAction.QUERY_LAST:      // 마지막 블럭만 만들어서 보내줌
+    write(ws,responseLastMsg())
+break;
+
+function responseLastMsg(){
+    return {
+        type : MessageAction.RESPONSE_BLOCK   // 응답을 block으로 해준다는.. type을 반대로 돌릴것이다.
+        data : JSON.stringfy([bc.getLastBlock()]) // 마지막 블럭을 어떻게 가져와야 할까?? block0902 에서 가져옴 . 글자 형태로 보내줌
+    }
+}
+
+왜 마지막 배열을 담았을까?
+내가 연결을 할 때 server1 이 2개 server2 가 1개의 블럭을 갖고있을때
+마지막 인덱스값을 비교해보면 블럭의 개수를 알 수 있기 때문이다.
+개수가 다르면 매칭을 시켜준다.
+
+-------------------------
+function queryBlockMsg(){
+    return {
+        type : MessageAction.QUERY_LAST,
+        data: null
+    }
+}
+
+function init(ws) {
+    sockets.push(ws)
+    initMessageHandeler(ws)
+    initErrorHandeler(ws)
+    //ws.send(JSON.stringify({type:MessageAction.QUERY_LAST,data:null}))
+    write(ws, queryBlockMsg()) // 위에랑 똑같은 코드
+}
+
+------------------------
+
+QUERY_ALL
+
+block 에 있는...모든 걸 보내는
+
+function responseBlockMsg(){
+    return {
+        type : MessageAction.RESPONSE_BLOCK 
+        data : JSON.stringify(bc.getBlocks())      // 리턴값이 배열로옴 - 블럭을 담고 있는 모든 거를 리턴
+    }
+}
+
+function queryAllMsg(){
+    return {
+        type : MessageAction.QUERY_ALL,
+        data: null
+    }
+}
+-> 전체 블럭을 보내는 이유?
+맞지 않은 부분부터 처리를 해줘야 하는데 
+값이 틀렸다? 그럼 그냥 값이 맞는 부분을 고쳐주는게 아니라 
+값 전체를 보내서 완전히 그걸로 쓰도록 한다.
+(재설정해라..)
+
+case MessageAction.QUERY_ALL:       // 전체 블럭을 만들어서 보내줌
+    write(ws,responseBlockMsg())
+break;
+
+
+---------------
+QUERY_LAST
+QUERY_ALL
+로 요청을 하게 되면
+RESPONSE_BLOCK 
+로 오게 된다.
+
+--------------------
+
+case MessageAction.RESPONSE_BLOCK:      // 이걸로 던져줌
+    handleBlockResponse(message)
+break;
+
+전달 받은 내용중에 all or last 겠지만
+
+function handleBlockResponse(message){
+    const receivedBlocks = JSON.parse(message.data)     // 받은 블록 / message 에서 data라는 속성값만 필요함
+    const lastBlockReceived = receivedBlocks[receivedBlocks.length-1] // 받은 블록의 마지막 블럭을 선택한다. 얘는 객체
+    const lastBlockHeld =  bc.getLastBlock()        // 가지고 있는 블럭의 마지막
+}
+
+일단은 이렇게 한다.
+
+index 는 헤더에 있다..
+내가 받은 데이터 블럭의 마지막에서 헤더에서 인덱스가 내가 갖고 있는 헤더의 인덱스보다 높다면 그 블럭은 잘못된 블럭
+
+function handleBlockResponse(message){
+    const receivedBlocks = JSON.parse(message.data)     // 받은 블록 / message 에서 data라는 속성값만 필요함
+    const lastBlockReceived = receivedBlocks[receivedBlocks.length-1] // 받은 블록의 마지막 블럭을 선택한다. 얘는 객체
+    const lastBlockHeld =  bc.getLastBlock()        // 가지고 있는 블럭의 마지막
+
+    if(lastBlockReceived.header.index > lastBlockHeld.header.index){
+        console.log(
+            "블럭의 갯수 \n" +
+            `내가 받은 블록의 index 값 ${lastBlockReceived.header.index} \n` +
+            `내가 가지고 있는 블록의 index 값 ${lastBlockHeld.header.index} \n`
+        )
+    }else {
+        console.log('블럭이 이미 최신화 되어 있습니다');
+    }
+}
+
+
+만약 같다면..? 그 부분도 처리해주면 된다.
+내용비교를 하는것...
+
+어떻게 넣어줘야 할까??
+if(bc.createHasch(lastBlockHeld) === lastBlockReceived.header.previousHash){
+    // 같은 경우에는 마지막에 추가만 해주면 된다. addBlock 함수를 쓰면 된다.
+    console.log(`마지막 하나만 비어있는 경우, 하나만 추가합니다.`)
+    if(bc.addBlock(lastBlockReceived)){
+        // 넣어주고. 다른 사람도 검증 할 수 있도록 보내줘야 한다.
+        broadcast(responseLastMsg())
+    }
+}
+
+
+----------------
+내가 받은 블럭이 length = 1 즉 제네시스 블럭밖에 없다면?
+내가 가지고온 블럭의 배열이 업뎃이 안되어있다. 내가 최신이라는 얘기
+
+else if (receivedBlocks.length === 1) {
+    console.log(`peer 로 부터 블록을 연결해야 합니다.`)
+    // 이때는 내가 갖고 있는 블럭 전체를 보내줘서 바꿔 끼울 수 있도록 한다.
+    broadcast(queryAllMsg())
+}
+
+----------------------
+[block0902.js]
+가서 함수를 하나 만들어준다.
+
+function replaceBlock(newBlocks){}
+
+newBlocks : 내가 받은 전체 배열 => 내가 받은 전체 블록들
+Blocks = newBlocks 근데 간단하지가 않음 - 검증을 해줘야 하기 때문...
+
+1. newBlocks 내용을 검증해야 한다.
+2. 검증을 한번만 하지 않는다. 렌덤하게 한번만 할 수 있고, 두번 혹은 세번을 할 수 있게 한다.
+3. 검증이 끝나면 Blocks = newBlocks 로 바꿔주고
+4. 그 다음에 여기서 broadcast 한다.
+
+
+2번이 포인트..! -> 조건문에 random을 쓴다는 얘기
+이거를 만들려면, 어떻게 해야할까??
+
+가라 형식으로 하나 파일을 만들어보자
+[loop.js] 생성
+$ npm i random  (제일 바깥 폴더에 설치)
+
+const random = require('random')
+console.log(random);
+console.log(random.int());     혹은 integer() 도 같음
+// 0 과 1 이 랜덤하게 나온다.
+
+random.boolean() 으로 하면 true or false 가 나옴
+
+두가지의 경우의 수를 랜덤하게 반환해주는 패키지
+
+$ cd .\src\
+$ node loop
+
+
+---------------
+그래서 이 패키지를 [block0902.js] 에서 가져올 것이다.
+
+const random = require('random')
+
+function replaceBlock(newBlocks){} 로 돌아와서
+
+
+[network.js]
+에서 
+모듈 exports 에 responseLastMsg 를 추가해라
+
+if (isVaildBlock(newBlocks) && newBlocks.length > Blocks.length && random.boolean()) {
+    // 여기가 3번
+    console.log(`Blocks 배열을 newBlocks 로 교체합니다`)
+    // 여기가 4번
+    // block.js 에서 broadcast 사용할 수 있나? - 사용가능!
+    // network.js 에서 broadcast를 모듈화 했냐는것? - 했음..
+    const nw = require('./network')
+    Blocks = newBlocks
+    nw.broadcast(nw.responseLastMsg())
+}
+-------------------------------------
+
+내가 갖고 있는걸 남한테 보내주고 
+최신화로 맞춰주는 것..
+
+---------여기까지가 기본 세팅------------
+
+호환성.....?
+이더리움 계열의 토큰을 빌드해서
+이더리움 네트워크 구조 이해하고
+디앱하고
+우리 사이트에 구축시키는게...목표
+흐름 이해 못하더라도...?
+
+-----------------------------------------
+
+두 대를 돌려서 실행시켜봐야 한다.
+
+src2 폴더를 만들어준다
+터미널을 server1 (src)과 server2 (src2) 로 만들어준다.
+
+그리고 각각의 터미널을 분할해서 
+server1 은 cd src
+server2 는 cd src2
+로 넘어간다
+
+server 1 터미널에서 
+$ node server
+로 열여준다.
+3000번 포트로 열어주었고 소켓은 6005번으로 실행시킴
+
+
+server 2 터미널에서
+3001 과 6006 로 바꿔주고
+$ node server
+
+
+--------
+window 터미널 켜서 wsl 에 들어가서
+
+$ curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:6006\"]}" http://localhost:3000/addPeers
+
+
+그럼 server 1 , 2 터미널에 
+블럭이 이미 최신화 되어 있습니다 라는 콘솔로그가 뜬다
+
+server 2 부분에는 console.log(ws) 도 찍힘
+-------------
+
+그럼 하나를 다르게 만들어 보자
+
+src/server.js
+mineBlock 부분을 보면
+
+const result = bc.addBlock(data)
+이렇게 되어있는데
+addBlock 에는 broadcast 하는 부분이 없다.
+그래서 여기에도 코드를 작성해야 한다.
+
+[src/block0902.js]
+
+function mineBlock(blockData){
+    const newBlock = nextBlock(blockData)        //새로운 객체를 가진, Object Block {header, body}
+    // 블럭을 만들려면 전역배열에다 넣어줘야함. 검증은 addBlock 이 대신해줄것
+    // addBlock 도 매개변수 받는걸로 nextBlock을 쓴다.
+    // 그래서 addBlock 은 newBlock을 받아서 하는거로 바꿔준다
+    if(addBlock(newBlock)){
+        // 모든 peer 에게 블록이 추가 되었으니 마지막거를 확인하라고 broadcast로 날려줘야 한다
+        const nw = require('./network')
+        nw.broadcast(nw.responseLastMsg())
+        return newBlock     // 성공하면 객체 반환
+    }else{
+        return null
+    }
+}
+
+모듈 exports 에도 mineBlock 추가하고
+
+이 부분을 추가해준다.
+
+[src/server.js]
+app.post('/mineBlock',(req,res)=>{
+    const data = req.body.data      // 배열형태의 data를 받아오고
+    const result = bc.mineBlock(data)   // 그러면 {} 또는 false 값이 반환될 것이다.
+    if(result == null){
+        //res.send(`mineBlock failed`)
+        res.status(400).send(`블럭 추가에 오류가 발생됨`)
+    }else{
+        res.send(result)
+    }
+})
+이렇게 바꿔준다
+
+
+
+addBlock(['hello1'])
+addBlock(['hello2'])
+addBlock(['hello3'])
+이 부분 지워주기
+- 인자값을 객체로 바꿨으므로 
+-------------------
+src3 에도 server.js 와 block0902.js  복붙해줌
+
+하고 서버 둘 다 열어줌
+
+다시 팽귄에다가
+$ curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:6006\"]}" http://localhost:3000/addPeers
+이렇게 쳐서 연결을 시켜준다
+
+$ curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"Hello world!\"]}"
+이렇게 서버1에 요청을 보낸다.
+
+server1 터미널에
+Connection close ws:localhost:6006
+이런 콘솔로그가 뜬다
+
+server2 터미널에
+블럭의 갯수 
+내가 받은 블록의 index 값 1
+내가 가지고 있는 블록의 index 값 0
+이렇게 뜬다.
+맞지 않는다...
