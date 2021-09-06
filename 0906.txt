@@ -479,3 +479,123 @@ server2 터미널에
 내가 가지고 있는 블록의 index 값 0
 이렇게 뜬다.
 맞지 않는다...
+
+---------------------------------------
+블럭 최신화를 진행합니다
+GenensisBlock error
+메시지로부터 받은 블록배열이 맞지 않습니다
+
+이런식으로 에러가 뜨는데
+
+[block0902.js]
+createGenesisBlock() 부분을 보면
+사실 하드 코딩으로 만들어야 한다.
+실행할때 마다 다르게 나오면 안된다.
+
+function createGenesisBlock() {
+    const version = "1.0.0"
+    ...
+    const time = 1630907567
+}
+이렇게 하드 코딩 해줘야함
+
+그래서 GenensisBlock error 가 난거임!
+계속 달라지니까..
+
+서버 껐다가 키면
+$ curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:6006\"]}" http://localhost:3000/addPeers
+$ curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"Hello world\"]}"
+
+server2 에서
+마지막 하나만 비어있는 경우, 하나만 추가합니다. 
+가 나온다.
+
+하나가 비어있어서 그 부분이 추가가 된다
+server1 에다가 추가를 했는데 
+
+$ curl http://localhost:3001/blocks | python3 -m json.tool
+이거를 해보면
+
+server2 에도 내용이 추가된것을 볼 수 있다.
+
+하나 더 추가를 해보자
+
+1. 추가
+$ curl http://localhost:3001/mineBlock -X POST -H "Content-Type:application/json" -d "{\"d
+ata\":[\"Hello\"]}"
+
+2. 조회
+[직접 추가한  3001 번 조회]
+$ curl http://localhost:3001/blocks | python3 -m json.tool
+
+[업뎃 된 3000번 조회]
+curl http://localhost:3001/blocks | python3 -m json.tool
+
+
+-----------------------
+서버 종료하고
+server1 만 실행
+server2 는 꺼져있음
+그러면 
+
+그런 상태에서 다시 
+조회 요청하면
+curl http://localhost:3000/blocks | python3 -m json.tool
+제네시스 블럭만 나옴
+
+이상태에서 1번 서버에 블럭 2개 추가
+$ curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"Hello world\"]}"
+이렇게 두번 추가하고
+다시 조회
+curl http://localhost:3000/blocks | python3 -m json.tool
+하면 3개가 나옴
+그러고 2번 서버에 요청
+curl http://localhost:3001/blocks | python3 -m json.tool
+당연히 안나옴
+
+이상태에서 2번 서버 열어주고 
+curl http://localhost:3000/blocks | python3 -m json.tool
+이걸 하면 1개가 나옴
+- 왜? 연결을 아직 안해줬으니까
+addPeers 를 해줘야 함!!!
+$ curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:6006\"]}" http://localhost:3000/addPeers
+로 연결하면
+
+Blocks 배열을 newBlocks 로 교체합니다
+이런게 터미널에 나오고 
+한개이상의 차이점이 있어서 싹 교체 한다는 거다.
+그리고 다시 2번 서버 조회 해보면 1번과 동기화 되어있는것을 확인할 수 있다.
+
+
+-------------------------------------
+서버가 연결되어 있는 상태에서 둘 중 하나를 끄면
+Connection close undefined
+이렇게 나옴
+---------------------------------------
+
+case 1 :
+맨 처음에 둘다 켜놓고
+한 곳에 추가 하고 두 곳 다 조회 다 업뎃 되었나
+
+case 2:
+서버1에 블럭 3개이상 생성 하고 
+그 다음 서버2 키고 addPeers연결 하고 조회 해보기
+그 다음에 서버2에도 추가 해보고 둘 다 조회 되는지 - 업뎃되었는가
+
+case 3 :
+server 1, 2, 3 을 만들어놓고 서버 다 켜고
+6005
+3000
+나머지는 하나씩 +1 로 하기
+
+3000에 연결하고 여기에 블럭 추가 했을때 2,3 번 에 추가되는지
+끈 상태에서 추가하고 나중에 켰을 때 추가되는지
+
+curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:localhost:6006\",\"ws:localhost:6007\"]}" http://localhost:3000/addPeers
+
+case 4 :
+server 1 - server 2
+server 2 - server 3 
+에 연결해 놓고
+data 추가했을 때 되는지??
+

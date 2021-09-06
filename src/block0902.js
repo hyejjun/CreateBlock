@@ -41,9 +41,9 @@ function getLastBlock() {
 
 
 function createGenesisBlock() {
-    const version = getVersion()
+    const version = "1.0.0"
     const index = 0
-    const time = getCurrentTime()
+    const time = 1630907567
     const previousHash = '0'.repeat(64)
 
     const body = ['hello block']
