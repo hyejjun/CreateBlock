@@ -111,7 +111,7 @@ function closeConnection(ws){
 
 // 최초의 접속
 function wsInit() {
-    const server = new WebSocket.Server({ port: wsPORT })       // server
+    const server = new WebSocket.Server({ port: wsPORT })       // server 만들때
     /*
         server 내가 받은 소켓
         server.on('특정메시지',()=>{console.log('hu')})
@@ -149,6 +149,7 @@ function connectionToPeers(newPeers) {
         // 주소값 : ws://localhost:7001 - 통신 규약이 달라서 http 가 아니라 ws 로 온다
         const ws = new WebSocket(peer)  // 얘는 도메인 주소까지 받아서 처리, 웹소켓 자체를 실행 아까 Server 까지 실행한거랑은 다르다.
         ws.on('open', () => { init(ws) })       // 접속 한 뒤 한번 열어, 그게 완료가 되면 전역변수에다가 추가
+        // 여기서도 init 함수를 쓰는데 - 클라 오픈할때도 init 함수를 쓴다는 것 
         ws.on("error", () => { console.log('connection failed'); })               // error 가 나는 경우 처리
     })
 }

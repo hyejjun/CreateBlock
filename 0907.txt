@@ -991,3 +991,5 @@ function CloseConnection(ws){
     console.log(`Connection cloese ${ws.url}`);
     sockets.splice(sockets.indexOf(ws),1) 
 }
+
+서버를ㄹ 만들때 init 클라 만들때 init
