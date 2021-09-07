@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button id="btn">dd</button>
+    <script>
+        let bt= document.querySelector('#btn')
+        bt.addEventListener('click',()=>{
+            alert('hello')  // 이것도 따지고 보면 비동기라는 것. click 이라는게 들어왔을때 alert 를 띄운다
+        })
+
+
+
+
+
+
+
+
+
+
+        let result = 0;
+        let callback = (number, cb) => {
+            setTimeout(()=>{
+                let sum = 0;
+                for(let i=0; i<number; i++){
+                    sum += i
+                } 
+                cb(sum)
+                result = sum
+            },1000)
+            // 1초동안 기다렸다가
+        }
+
+        // 사용을 해야 한다. hello(), 내용에 인자값을 넣어줘야 한다 hello(10) 이렇게.
+        function hello(num){
+            console.log(`num : ${num}`);
+        }
+        callback(10,hello)  // 함수 실행이 아니라 함수 자체를 넣어버림
+
+    </script>
+</body>
+</html>
