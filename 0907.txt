@@ -1,0 +1,993 @@
+합의알고리즘
+마이닝...
+--------------
+0906 복습
+
+인터페이스 : 리모컨, 클라이언트... 내가 뒤에 만든 프로그램이랑 대화할 수 있는 매개체 (요청만 보내는..)
+HTTP 인터페이스
+- node js (express http server 가 항상 backend로만 구축했던..) 지금은 client 역할만 한다
+- 왜 client 역할을 하고 있는가? -> 블록체인이라는 특수성
+- 사용자에게 1,000원 이라는 데이터를 받았다면 우리는 그 정보를 영구적으로 가지고 있어야만 응답을 줄 수 있는데
+이 데이터를 어떤 방식으로 저장할 것인가?
+- 저장하는 방식
+1)  메모리에 저장 - 변수에 저장함
+    웹소켓을 껐다가 켰을때 당연히 블록이 날아간다.
+    웹소켓을 통해서 서로간에 연결을 시켜주는 채팅 프로그램을 만들었다고 생각해보자
+
+          websocket
+    websocket   websocket
+    websocket   websocket
+
+    # http 인터페이스?
+    각각의 websocket 이 1000원을 갖고 있는데
+    ingoo가 얼마있는지 알고 싶어. 누구에게 물어봐야하는데 그걸 해주는 역할이 누구일까? 누구에게 물어보면 될까?
+    이럴때 필요한게 인터페이스. websocket 이랑 사람이랑 통신할 수 있는 인터페이스 (http) 가 필요함
+    요청) get post 이런식으로 요청을 보내겠지??
+    http 서버가 나랑 연결 되어있는 websocket 에다 물어본다.
+    이 흐름을 알기 위해서 http 서버가 하는 역할이 단순 인터페이스 역할이다 라는 것을 정확히 알고 있어야 한다.
+    단순히 요청을 받아서 그 내용에 뒤따른 처리는 websocket 에 있는 코드들이 해주고 "데이터를 저장하는 방식을 어떻게 했냐"-block.js 에서 해주고
+    
+    [server block network .js] 가 중요
+    server  - 인터페이스의 역할 - 사용자가 어떤 작업을 해야 하는지 정해주는 리모컨 같은 [사용자 인터페이스]
+    network - 우리가 데이터를 연결짓게끔 하는 backend 라고 생각하면 될듯
+    block   - 단순하게 나의 블럭들을 저장하는 형태를 만드는 공간 [db를 대체한다고 생각해주기]
+
+
+GUI 
+API
+
+-----------------
+[network.js]
+간단한 통신에 대한 내용
+
+initErrorHandler 내의 문법.. 이런게 어려울 수 있다.
+하나씩 console log 찍어가면서 공부해보는게 좋을듯..
+
+함수 실행 순서.. 같은거가 어려울 수 있고
+
+ws.on 이런거..
+
+document.addEventListener('click',()=>{
+// document에 click 이벤트 등록
+// 코드가 계~~~속 실행되어야 한다. 그래야 이벤트가 발생했을 때 알 수 있기 때문
+})
+
+ws.on('message',()=>{
+// on 역시 이벤트 등록을 위해 썼다고 생각하면 될듯
+
+})
+
+위에랑 비슷하다고 생각하면 된다
+상위 객체에서 매서드를 실행하고 스트링으로 뭔가 들어가고 두번째 인자값이 콜백함수
+
+
+####### callback ########
+
+let callback = (a,b) => {
+    console.log(a,b)
+}
+
+callback(1,2)
+
+a=1, b=2
+가 찍힌다.
+
+이 상태에서 setInterval 을 써보자
+let callback = (a,b) => {
+    // 1번째 인자값 : 함수, 2번째 인자값 : 실행시간
+    setInterval(a,b)
+}
+
+callback(()=>{console.log('hello')},1000)
+// 1초마다 hello 를 찍게 된다.
+
+----
+여기서 더 나아가서 3번째 인자값 (객체)까지 넣어보자
+callback(()=>{console.log('hello')},1000,{type : 'click', data : null})
+
+let callback = (a,b,c) => {
+    if(c.type == 'click'){
+        setInterval(a,b)
+    }
+}
+
+type 이 click 일때만 setInterval 이 돌게 되어 그 때만 console.log 가 찍힌다.
+
+-----
+[index.html]
+let callback = (number, cb) => {
+    setTimeout(()=>{
+        let sum = 0;
+        for(let i=0; i<number; i++){
+            sum += i
+        } 
+        cb(sum)
+    },1000)
+    // 1초동안 기다렸다가
+}
+
+callback이라는 함수를 실행했을 때 number 라는 변수와 cb 라는 함수를 받는다.
+두 가지 인자값을 받고 실행이 되면 setTimeout(비동기) 이 돈다
+
+callback(10,(s)=>{
+    console.log(s);
+})
+
+이렇게 출력을 시킨다.
+
+console.log('hello');
+callback(10,(s)=>{
+    console.log(s);
+})
+console.log('bye');
+
+--결과물---
+hello
+bye
+45      // 1초동안 기다렸다가 - 다른 선로에 잠깐 빼놓는다고 생각하면 된다.
+
+순서가 1,3,2 이렇게 찍힌다.
+
+이게 비동기 코드이다. - setTimeout
+
+1000 1초 아니고 0초라고 줘도 똑같이 옆으로 빠짐
+setTimeout, setInterval 은 다른 처리를 해주는 곳으로 공간을 빼줌
+
+
+------
+let result = 0;
+let callback = (number, cb) => {
+    setTimeout(()=>{
+        let sum = 0;
+        for(let i=0; i<number; i++){
+            sum += i
+        } 
+        cb(sum)
+        result = sum
+    },1000)
+    // 1초동안 기다렸다가
+}
+// 얘가 다른 곳을 빠짐 - 그래서 result 라는 변수에 아무것도 못채우고 지나감
+callback(10,(s)=>{
+    console.log('callback : ',s);
+})
+console.log('변수 : ',result);
+
+그럼 result 는 어케 쓰냐고??
+-------
+
+let result = 0;
+let callback = (number, cb) => {
+    setTimeout(()=>{
+        let sum = 0;
+        for(let i=0; i<number; i++){
+            sum += i
+        } 
+        cb(sum)
+        result = sum
+    },1000)
+    // 1초동안 기다렸다가
+}
+// 사용을 해야 한다. hello(), 내용에 인자값을 넣어줘야 한다 hello(10) 이렇게.
+function hello(num){
+    console.log(`num : ${num}`);
+}
+callback(10,hello)  // 함수 실행이 아니라 함수 자체를 넣어버림
+
+----------
+
+함수나 변수를 저장하는 공간
+# heep
+
+호출되는 시점에서만 실행을 하는것. 그게 callback
+callback 을 사용하면 웬만하면 그 코드는 비동기..
+
+예) server.js
+app.get('/',()=>{})
+혹은
+app.get('/',hello)
+function hello(){}
+이벤트에 대한 스트링값, 함수 를 넣어준다.
+
+---------------
+
+다시 addEventListener 로 넘어오자면
+
+<button id="btn">버튼</button>
+<script>
+    let bt= document.querySelector('#btn')
+    bt.addEventListener('click',()=>{
+        alert('hello')  // 이것도 따지고 보면 비동기라는 것. click 이라는게 들어왔을때 alert 를 띄운다
+    })
+
+[network.js]
+그래서 ws.on 얘도 비동기이다.
+여기서도 이벤트 종류가 몇개 있을 것이다.
+흔히 자주 쓰는 메서드가 무엇인지...
+websocket 의 on 이라는 매서드를 실행했을때..
+얘도 비동기로 실행되는 것이다.
+
+[websocket 의 이벤트 종류]
+open
+connection
+error 
+close
+message 
+
+*message 가 가장 중요하다
+- 얘도 비동기로 처리가 된다.
+이 인자값(data)은 누가 주는걸까?
+ws.on("message", data => {}
+어케 가져왔지??
+data라는 변수는 on 이라는 애가 만들어준것이다.
+
+
+--------------------
+cs 지식
+동기와 비동기 / 동일한 기찻길
+
+이 하나의 기찻길이 전문용어로 쓰레드
+그래서 js 가 싱글 쓰레드 (기찻길 하나) 라서 비동기라는 프로그램을 쓴다, 콜백이 유독많은 이유가 이것 때문
+
+싱글스레드가 무조건 나쁘냐?
+그건 또 아니다.
+
+-------
+[sample.js]
+let a = 1;
+let b = 2;
+let fn = () => {
+    console.log('a');
+}
+
+function fn2(){
+    console.log('b');
+}
+
+let c = 10
+
+let o = {
+    a: 1,
+    b: 2
+}
+
+
+heep 이라는 공간 : 장바구니
+무언가 내용을 저장하는..공간
+코드를 주워 담음
+let a = 1 이런거를 다 주워 담음
+저 전체가 다 담아져 있음 (실행은 된 것)
+실행은 됐는데... 담기만 했다.
+
+담고 나서 사용을 한다.
+
+
+console.log(a)
+console.log(b)
+console.log(fn)         // 함수 형태로 출력됨   [Function: fn]
+console.log(fn2)        // [Function: fn2]
+console.log(c)
+console.log(o)
+
+이게 왜 실행되는 걸까??
+
+장바구니에 막 담아 놓는...
+메모리에 담아 놓는다.
+
+이 메모리라는 공간에 변수를 다 저장하는 것이다.
+
+즉 a 라는 주소값으로 1을 저장
+fn 이라는 주소값으로 저 함수를 저장
+
+즉 메모리에 저장을 한 것
+
+그래서 우리가 필요할 때 메모리가 저장한 a 주소에 있는 내용 출력해줘.. 이렇게 되는것
+
+
+그런데 좀 다른것?
+함수 부분의 느낌이 좀 다르다.
+
+function fn2(){
+    console.log('b)
+}
+
+언어별로 함수 표현이 다른다.
+java : 함수도 객체
+python : 객체도 함수다.
+즉 우리가 쓰는 코드들은 호출을 하면 함수에 있는 내용이 실행이 된다.
+프로그램 언어에 따라서 동작원리가 다르다
+js : 함수는 곧 객체이다. 호출이 가능한 객체 (Object)
+
+fn2()
+fn()
+
+하면 b 출력하고 a 가 출력 될 것.
+
+메모리에 함수를 선언했을 때 당시에 메모리에 들어간다.
+fn 과 fn2 가 들어감
+사용을 하면 저 메모리 안에 있는 내용을 호출하는것.
+
+함수라는 것은 그 안에 또 코드가 작성이 되어있음
+이 내용도 메모리 안에 들어가 있다.
+
+그래서 
+function fn2(){
+    console.log(b)
+}
+let b =2
+fn2()
+
+심지어 이것도 된다.
+
+function fn2(){
+    console.log(b)
+}
+const a=()=>{
+    console.log(b)
+}
+let b =2
+fn2()
+a()
+
+이것도 됨..
+왜 되냐??
+이 코드 각각이 메모리에 저장되어 있다가 호출이 되면 가져오게 되어있기 때문
+글자를 읽는 순서대로 실행되는게 아니라는거!!!
+
+메모리를 얼마나 이해하고 있냐...
+
+그래서 network.js 의 순서를 알 수 가 없는것..
+
+그래서 형태를 만들었다. 디자인 패턴 (MVC 패턴 같은..)
+---------------------------
+이제 그러면 network.js 를 쓰면서 이해해 보도록 하자!
+
+가장 핵심적인 녀석이 ws
+
+Websocket 의 사용방법도 알아야 한다.
+
+npm socket 을 쳐서 내용을 봐보자
+
+const WebSocket = require('ws')
+
+cosnt ws = new Websocket('ws:localhost:3000')
+
+new를 붙였으니까 ws 는 어떤 내용을 담고 있는 객체가 된다.
+
+잠깐!
+http://     localhost:3000
+ws://   localhost:3000
+        IP : Port
+
+이 두개는 다르다
+
+[ ] : // IP : Port
+ㄴ 얘는 뭘까?
+
+바로 프로토콜이다.
+- 데이터 통신 방법이 어떤거냐를 묻는거임
+
+http 는 우리가 요청을 보내면 문서가 하나 생긴다 request msg 
+그 문서의 형태
+--------------
+start line      
+header
+
+body
+-------------
+
+
+http 는 항상 이렇게 텍스트를 만들어서 보내줘야해
+
+
+-----------------------
+그러면 ws 는 뭘까?
+
+websocket 이라는게 생긴지는 10년정도 밖에 안되었다,
+브라우저가 발달이 되면서 나온것
+
+그래서 이 프로토콜은 생긴지 얼마 안된것
+
+http 문서의 형태와는 전혀 다르다.
+
+다른 형태로 하겠다는 것.
+
+앞에 있는 부분의 영역이 그런 의미를 갖고 있다는 것 (앞으로 통신을 어떻게 하겠다)
+
+cosnt ws = new Websocket('ws:localhost:3000')
+얘가 하는 역할은 상대방 주소..를 적는 것이다.
+
+즉 websocket은 서버와 클라간에 소통이다.
+
+우리가 서버 한대만 있으면 연결할 사람이 없다
+서버 두대가 있어야 websocket 을 실행할 수 있다,
+하나가 클라 역할을 해줘야 한다는 뜻
+
+그래서 서버 기준으로 상대방의 주소(클라의 주소)를 적어야 한다
+
+ws.on('open')
+서로 연결이 되어서 클라 쪽에서 실행되는 코드
+오픈이 되면 실행이 된다.
+
+ws.on('message')
+어떤 데이터를 받았을 때 실행이 되는 이벤트
+
+-------------
+[서버측 내용]
+import { WebSocketServer } from 'ws';
+
+const wss = new WebSocketServer({ port: 8080 });    // 주소는 아니까 port 만 적음. 내가 서버의 생성을 할거다
+
+wss.on('connection', function connection(ws) {
+  ws.on('message', function incoming(message) {
+    console.log('received: %s', message);
+  });
+
+  ws.send('something');
+});
+-> 콜백 지옥이 될듯.. 이거를 벗어나기 위해서 function 함수로 뺀 것
+
+서버와 클라의 차이
+
+------------
+웹소켓은 기본적으로 서버와 클라가 있어야 성립이 된다.(즉 서버 두대가 있어야 함)
+
+그래서 우리가 함수를 만들었었는데
+
+function wsInit(){}
+얘의 역할은 내 자신을 websocket 서버로 만들겠다는 내용을 담고 있는 코드를 작성했다
+
+const wss = new WebSocketServer({ port: 8080 });
+이거랑
+const server = new WebSocket.Server({port:6005})
+이거는 같은 거임
+
+const ws = new WebSocket('ws://www.host.com/path', {
+  perMessageDeflate: false
+});
+클라 부분에 얘까지 되었을 때 wss.on('connection') 이 되는 것이다.
+
+여기는 서버 측 관련된것을 만든것이다
+안에 있는 코드들은 내가 서버를 만들고 어떻게 하겠다는 내용들...
+
+그럼 간단한 메시지를 주고받는것 부터 해보자
+
+
+function wsInit() {
+    const server = new WebSocket.Server({ port: 6005 })
+
+    // [비동기] 서버가 connection 맺어졌다 인자값이 하나 있는데 그걸 ws 라고 하겠다
+    server.on("connection", (ws) => {
+        ws.on('message', (message) => {
+            console.log(`received: ${message}`);
+        });
+
+        ws.send('something')
+    })
+}
+
+wsInit()
+이렇게 작성했다.
+node network 했는데 아무런 변화가 없다
+
+
+function wsInit() {
+    const server = new WebSocket.Server({ port: 6005 })
+
+    console.log(1);
+    server.on("connection", (ws) => {
+        console.log(2);
+        ws.on('message', (message) => {
+            console.log(3);
+            console.log(`received: ${message}`);
+        });
+
+        ws.send('something')
+        console.log(4);
+    })
+}
+
+wsInit()
+
+이렇게 했을 때 
+$ node network 
+하면 
+1 까지 실행됨
+
+connection 이 안되어서 2 부터는 실행이 안되고 있는거임
+
+그래서 network2.js 를 만들었다,
+여기에는 클라쪽 코드를 작성 해 볼 것이다.
+
+const WebSocket = require('ws')
+
+const ws = new WebSocket('ws://localhost"6005')        
+//network 6005 번으로 접속해야함
+
+ws.on('open',()=>{
+    ws.send('something')
+})
+
+ws.on('message',(message)=>{
+    console.log(`received : ${message}`);
+})
+
+이렇게 작성해준다.
+
+두개의 서버가 있어야 작동이 되는것이다
+
+$ node network
+$ node network2
+
+하면
+
+network
+1
+2
+4
+3
+received: something
+----------
+
+network2 는
+received : something
+-> 얘는 왜 찍히는 걸까?
+
+[network2.js]를 보면
+ws.on('message',(message)=>{
+    console.log(`received : ${message}`);
+})
+얘 때문에 실행되는것..
+근데 저 message 라는 변수는 뭐냐? 위에있는 something 이냐?
+아니다!!
+
+저 message 는 서버 측에서 보내주는 [network.js]
+ws.send('something')
+이것이다.
+(connection 이 맺어질때 바로 보낸거임)
+
+저 부분을 알기 쉽게 ingoo 라고 바꿔보자
+그러다면 send 라는 매서드는 내가 보낼 내용들을 전달할때 사용한다.
+받는 애들은 나와 연결된 소켓들..
+
+그걸 받는 이벤트 명이 'message' 인 것이다.
+[network2.js]
+ws.on('message',(message)=>{
+    console.log(`received : ${message}`);
+})
+
+send('무언가') -> 'message'
+이 무언가는 클라 쪽 콜백함수의 인자값으로 들어간다.
+
+[서버]
+ws.send('ingoo')
+[클라]
+ws.on('message',(message)=>{
+    console.log(`received : ${message}`);
+})
+
+------------
+클라이언트 서버에서 connect() 하는 부분이 'open' 인가??
+
+서버측을 종료하고 클라만 실행하면?
+뭔가 안됨
+그래서
+[network2.js] 에
+
+ws.on('error',()=>{
+    console.log('error 발생');
+})
+
+이 부분을 추가하고 다시
+
+$node network2 해보면
+
+error 발생이 나온다.
+
+-----------
+[network2.js]
+ws.on('open',()=>{
+    ws.send('something')
+})
+
+이 코드의 형태는 이벤트를 받는 형태이다
+무언가가 연결이 되어야 open 이라는 키워드를 받을것이다.
+open 이라는 것은 연결이 완료가 되어있고
+연결이 완료가 되었고, 연결 완료 되는 시점에 무언가 찍고 싶을때. 최초에 실행하는 코드 한번.
+
+얘가 없어도 message 저거는 받아 올 수 있음
+
+이벤트를 받아서 처리하는... 코드들은 커넥션을 맺기가 어렵다
+이런 형태를 띄고 있다고 해서 connection - open ? 이거는 아니다.
+
+------------------------
+[network] 전체코드
+//ws
+const WebSocket = require('ws')
+
+// 내 자신을 WS 서버로 만들겠다
+function wsInit() {
+    const server = new WebSocket.Server({ port: 6005 })
+
+    console.log(1);
+    server.on("connection", (ws) => {   // 어떤 클라가 요청이 되면 (connection 이 맺어지는 신호를 받으면)실행시키겠다
+        console.log(2);
+        ws.on('message', (message) => { // 그럼 이 message 라는 애는 뭘까? 
+            console.log(3);
+            console.log(`received: ${message}`);
+        });
+
+        ws.send('ingoo')
+        console.log(4);
+    })
+}
+
+// wsInit()
+
+module.exports = {
+    wsInit,
+}
+
+
+-----------------------
+[network.js]
+그래서 wsInit() 은 소켓 서버를 구동시키는 코드이다
+
+이 코드는 server.js 인터페이스 쪽에서 사용을 했었다.
+
+그래서 우리가 코드를 작성할 때
+
+module.exports = {
+    wsInit,
+}
+
+이렇게 보냈었다.
+
+근데 만약 서버가 3대 4대 들어오면 어떻게 될까?
+
+서버 모두에게 ws.send('ingoo') 가 다 전달 될것이다.
+
+그래서 이 ws 를 배열에 담기 시작한다.
+ㄴ 특정 사람에게만 send 주기 위해서.
+귓속말 처럼..
+
+let sockets = []
+이렇게 빈 배열을 만들어서
+
+client가 connection을 맺을 때 마다 저 배열에 하나씩 쌓았다.
+
+
+--------------------
+//ws
+const WebSocket = require('ws')
+
+let sockets = []    // 접속한 사람들 중 특정 사람에게만 내용을 전달하고 싶어서 이렇게 따로 뺌
+
+function wsInit() {
+    const server = new WebSocket.Server({ port: 6005 })
+    server.on("connection", (ws) => { 
+       init(ws)
+    })
+}
+
+function init(ws){
+    sockets.push(ws)
+}
+
+module.exports = {
+    wsInit,
+}
+--------------------------------
+server.on("connection", (ws) => { 
+       init(ws)
+       // ws.on("message",()=>{}) 클라가 주는 메시지를 받고 싶어
+       // ws.send("text ~~") 클라에게 내용전달
+       // 원래는 이 안에 작성을 해야 한다 근데 우리는 밖에다 따로 뺐었다. - 길어질까봐
+
+    })
+------------------------
+
+
+function wsInit() {
+    const server = new WebSocket.Server({ port: 6005 })
+    server.on("connection", (ws) => { 
+       init(ws)
+    })
+}
+
+function init(ws){
+    sockets.push(ws)
+    initMessageHandeler(ws)
+}
+
+function initMessageHandeler(ws){
+    ws.on('message', (data)=>{
+        console.log(data);
+    })
+}
+
+wsInit()
+----------------
+이렇게 함수로 빼주고
+
+-----
+
+network2.js
+에서 send로 보내면
+
+ws.on('open',()=>{
+    ws.send('서버야 받아봐라')
+})
+
+$ node network
+$ node network2
+
+하면 
+<Buffer ec 84 9c eb b2 84 ec 95 bc 20 eb b0 9b ec 95 84 eb b4 90 eb 9d bc>
+이런 값이 나온다
+
+[network.js]
+function initMessageHandeler(ws){
+    ws.on('message', (data)=>{
+        console.log(data.toString());
+    })
+}
+이렇게만 바꿔주면
+우리가 읽을 수 있는 형태로 나오게 된다.
+----------------------
+function init(ws)
+이거는 최초에 실행될때 되도록 하는 애들을 모아놓은
+
+ws.on('message', (data)=>{ 
+클라 -> 서버 로 보내는
+
+send 함수 - 'message'
+----------------------
+websocket 과 socket.io 의 차이점
+
+socket.io 에도 on 이라는게 있는데
+내용을 보낼때 socket.emit("이벤트명", {내용들}) 을 통해서 보냈었다.
+그래서 받았을 때 그 이벤트 명인 애를 받아서 처리가
+socket.on("이벤트명",(인자값)=>{})
+이렇게 받았었다. {내용들}은 인자값으로 들어가게 된다.
+
+[socket.io]
+내용을 전달할때 이벤트 명도 같이 적어서 보낸다.
+특정 이벤트 일때만 실행되도록
+
+[websocket]
+은 객체를 못보냄 그냥 텍스트만 보낼 수 있음
+한번 객체로 보내보자
+ws.send({name:'ingoo'})
+이런 에러가 난다
+The first argument must be of type string
+
+그럼 이렇게 보내고
+ws.send(`{"name":"ingoo"}`) // 무조건 이 형태여야만 JSON.parse 가 작동함
+
+이렇게 받아오면
+ws.on('message', (data)=>{      
+    console.log(JSON.parse(data))
+})
+
+근데 이렇게하면 너무 불편하다,
+그래서
+
+ws.on('open',()=>{
+    let obj = {name : 'ingoo'}
+    let rst = JSON.stringify(obj)
+    ws.send(rst)
+})
+
+이렇게 보내면 잘 들어온다.
+
+ws.send 
+는 string 으로만 보낼 수 있다.
+받을 때도 string 으로 받는다. 
+그래서 받은 다음에 객체형태로 변경하는것
+
+send (객체형태 -> string)
+'message' (string -> JSON 으로 객체형태 만듦)
+
+어차피 모든 send 는 obj -> string 으로 바꿔야 하는데 
+이 기능을 따로 함수로 빼놓자 해서
+
+ws.on('open',()=>{
+    let obj = {name : 'ingoo'}
+    write(ws,obj)
+})
+
+function write(ws, message){
+    ws.send(JSON.stringify(message))
+}
+
+이런식으로 빼게 된것이다.
+
+웹소켓으로 뭔가 전달할땐 무조건 string 으로만 전달한다
+
+지금 사용하고 있는 웹소켓은 send 말고는 보낼 수 있는 방법이 없다.
+그래서 객체 안에다가 구분값을 넣어줘야 한다.
+그래서 객체에 type이라는 구분값을 만들어줬다
+
+ws.on('open',()=>{
+    let obj = {
+        type : 'msg',    
+        data : '안녕하세용'
+    }
+    write(ws,obj)
+})
+
+
+그런다음 받을 때
+switch 문으로 처리를 해줌
+
+initMessageHandeler() 여기에서
+
+
+function initMessageHandeler(ws){
+    ws.on('message', (data)=>{      
+        const message = JSON.parse(data)
+
+        switch(message.type){
+            case "msg":
+                console.log(message.data);
+                console.log("msg를 출력한다");
+            break;
+        }
+    })
+}
+
+이렇게 작성하고 다시 클라를 날려보면
+잘 나옴
+
+------------
+
+[클라]
+ws.on('open',()=>{
+    let obj = {
+        type : 'msg',    
+        data : '안녕하세용'
+    }
+    write(ws,obj)
+    
+    obj2 = {
+        type : 'send',
+        data : '데이터를 보내겠다'
+    }
+    write(ws,obj2)
+})
+
+[서버]
+function initMessageHandeler(ws){
+    ws.on('message', (data)=>{      
+        const message = JSON.parse(data)
+
+        switch(message.type){
+            case "msg":
+                console.log(message.data);
+                console.log("msg를 출력한다");
+            break;
+            case "send":
+                console.log(message.data);
+                console.log("data를 출력한다");
+            break;
+        }
+    })
+}
+
+이렇게 내용을 구분 지을 수 있게 message.type 을 정해서 보내준다.
+근데 socket.io 는 이렇게 안해도 보낼 수 있었다.
+(앞에서 구분할 수 있게 하고 전송데이터 형식도 json 으로 보낼 수 있음 -io)
+
+여기서 case 부분에 string 값으로 들어간것을 빼서 변수로 만들어주자
+const MSG = "msg"
+const SEND = "send"
+이렇게 바꾸고 case 부분도 바꿔준다.
+
+더 나아가서
+const MessageAction = {
+    MSG = "msg",
+    SEND = "send"
+}
+변수들을 객체 안에 넣고 사용할때는
+case MessageAction.MSG:
+이런식으로 사용할 수 있다.
+
+----------------------------------
+이 이벤트 타입을 3가지로 보냈었다.
+[클라 보내기]
+ws.on('open',()=>{
+    let obj = {
+        type : 0,    
+        data : '안녕하세용'
+    }
+    write(ws,obj)
+
+[서버 받기]
+const MessageAction = {
+    QUERY_LAST : 0,
+    QUERY_ALL : 1,
+    RESPONSE_BLOCK : 2
+}
+
+case MessageAction.QUERY_LAST:
+----------------------------
+
+case MessageAction.RESPONSE_BLOCK:
+    handleBlockResponse()   // 코드 칠 양이 많아서 따로 뺐다.
+break;
+
+------------
+[클라- 보내기]
+객체 만드는 부분 함수로 따로 빼기
+[network2.js]
+ws.on('open',()=>{
+    //type 0
+    write(ws,queryBlockMsg())
+    
+    //type 1
+    write(ws,queryAllMsg())
+})
+
+const MessageAction = {
+    QUERY_LAST : 0,
+    QUERY_ALL : 1,
+    RESPONSE_BLOCK : 2
+}
+function queryBlockMsg(){
+    return{
+        type : MessageAction.QUERY_LAST,
+        data : null,
+    }
+}
+function queryAllMsg(){
+    return{
+        type : MessageAction.QUERY_ALL,
+        data : null,
+    }
+}
+
+이렇게 
+만드는 부분 따로 빼주고 보내줄 때 따로 빼준 함수를 이용해서 보내주면 된다.
+
+--------------------
+error 처리
+[network.js]
+
+서버 종료 : close 이벤트
+에러 발생
+
+function init(ws){
+    sockets.push(ws)
+    initMessageHandeler(ws)
+    initErrorHandeler(ws)
+}
+
+function initErrorHandeler(ws){
+    ws.on("close",()=>{console.log('close ??');})       // 둘 다 켜져있다가 클라가 꺼지면 발동되는 이벤트 명이다. - 내가 종료 X  |  클라가 종료 되었을때 O
+    ws.on("error",()=>{console.log('error');})
+}
+
+이렇게만 하면 연결 끊긴 클라를 끊어낼 수 없다.
+----------------------------------
+
+function initErrorHandeler(ws){
+    // ws.on("close",()=>{
+    //     console.log('close ??');
+    //     sockets.splice(sockets.indexOf(ws),1)   // sockets 배열에서 자른다. - 찾을 인덱스값과 ,자를 갯수 - 접속을 해지한사람은 내가 관리할 수 있는 사람이 아니기 때문에 다시는 내용을 보낼 수 없게 배열에서 자른것 - 에러가 난 부분에도 똑같이 해주면 됨
+    // })       // 둘 다 켜져있다가 클라가 꺼지면 발동되는 이벤트 명이다. - 내가 종료 X  |  클라가 종료 되었을때 O
+    // ws.on("error",()=>{
+    //     console.log('error');
+    //     sockets.splice(sockets.indexOf(ws),1) 
+    // })
+    // 이렇게 했더니 코드가 너무 똑같아서
+
+    ws.on("close",()=>{CloseConnection(ws)})
+    ws.on("error",()=>{CloseConnection(ws)})
+
+}
+
+function CloseConnection(ws){
+    console.log(`Connection cloese ${ws.url}`);
+    sockets.splice(sockets.indexOf(ws),1) 
+}

@@ -19,7 +19,7 @@ const MessageAction = {
 // reducer를 만들겁니다
 function initMessageHandeler(ws) {
     // 실행할 소켓쪽 - 서버쪽 내용을 보면 됨 - ws 를 주는곳은 init 부분
-    ws.on("message", data => {
+    ws.on("message", data => {      // data라는 변수는 on 이라는 애가 만들어준것이다.
         const message = JSON.parse(data)
         switch (message.type) {
             case MessageAction.QUERY_LAST:      // 마지막 블럭만 만들어서 보내줌
@@ -111,7 +111,7 @@ function closeConnection(ws){
 
 // 최초의 접속
 function wsInit() {
-    const server = new WebSocket.Server({ port: wsPORT })
+    const server = new WebSocket.Server({ port: wsPORT })       // server
     /*
         server 내가 받은 소켓
         server.on('특정메시지',()=>{console.log('hu')})
