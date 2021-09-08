@@ -142,7 +142,7 @@ function broadcast(message) {
         write(socket, message)   //나 자신에게 메시지를 보내겠다
     })
 }
-
+// 요청을 한 애가 여기로 오게 된다.
 function connectionToPeers(newPeers) {
     newPeers.forEach(peer => {
         // 접속만 하면 된다 - string type으로 주소값이 들어갈 것이다.

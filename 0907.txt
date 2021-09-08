@@ -993,3 +993,16 @@ function CloseConnection(ws){
 }
 
 서버를ㄹ 만들때 init 클라 만들때 init
+
+-----------------------------------------
+[남의 서버에 연결 및 추가]
+
+curl -X POST -H "Content-Type:application/json" -d "{\"peers\":[\"ws:192.168.0.43:6005\"]}" http://localhost:3000/addPeers
+
+curl http://localhost:3000/mineBlock -X POST -H "Content-Type:application/json" -d "{\"data\":[\"hyejun world1\"]}"
+-> 내거에다가 추가
+
+curl http://192.168.0.43:3000/blocks | python3 -m json.tool
+curl http://localhost:3000/blocks | python3 -m json.tool
+-> 조회 / 연결되어있는 사람도 조회를 해보면 나랑 똑같이 나옴
+
