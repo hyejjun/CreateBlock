@@ -1,0 +1,450 @@
+지갑 만들기
+
+이더리움에 대한걸로 수업 진행될듯...
+
+블록체인에 대해서 어떻게 알고 있는지
+
+
+키 생성 하고 코인 생태계...? 여기에 관련된 기술들..?을 배워보자
+이게 끝나면 빌드하고 디앱 구축할 수 있는 스킬을 쌓아나가야 하니까..
+
+
+wallet.js 생성
+
+# secp256k1
+이거를 쓴다... 상세한 내용은 블로그에서 알아보는게 좋을 것 같다.
+
+사용방법만.. 알아보자
+
+기본적으로 얘는 알고리즘 암호화다.
+그래서 저 암호화를 사용하려면 패키지가 하나 필요한데,
+그게 바로 elliptic 이다.
+$ npm install elliptic
+가져오자
+
+const ecdsa = require('elliptic')
+
+console.log(ecdsa);
+
+얘를 한번 찍어보자
+
+색을 보니 class 는 절대 아님
+
+찍어보니 긴 객체가 나오는데
+
+안에 있는 함수들...
+암튼 이런식으로 생김
+
+일단은 이 안에 있는 ec 라는 애를 사용할거임
+
+{
+  version: '6.5.4',
+  ...
+   curves: {
+    ...
+    secp256k1: [Getter]
+  },
+  ec: [Function: EC],
+}
+
+그래서 사용방법이
+
+const ec = ecdsa.ec("secp256k1")        // 암호화 방법은 secp256k1 
+console.log(ec);
+
+ec 를 찍어보니 긴 객체가 쭉 나온다.
+
+이제 ec 라는 애가 갖고 있는 속성값을 사용해서 어떤걸 만들어낼 수 있는지 봐야함
+
+1. key 만들기
+console.log(ec.genKeyPair());
+하면
+KeyPair {
+  ec: EC {
+    ...
+}
+이런 객체가 나온다.
+
+console.log(ec.genKeyPair().getPrivate());
+이렇게 하면 바이너리 파일이 나온다.
+words : [숫자들..] 이 있으면
+
+.toString(16)
+
+이렇게 바꾸면 16진수로 바뀜
+
+.toUpperCase()
+여기 까지하면 대문자로
+
+console.log(ec.genKeyPair().getPrivate().toString(16).toUpperCase());
+
+지금 키값을 생성한거면
+렌덤 키값을 생성한거임
+sha256 으로 암호화를 진행했는데 얘는 기본적으로 복화화가 안되는 단방향 암호화임
+
+하지만 이번에 생성한 암호화는 렌덤한 글자 스트링들을 우리한테 반환해주는거임
+그런데 렌덤하게 하다보면 중복될 수 있는 가능성은 없는가?
+
+예를 들어 동전 던지기를 256번한다
+앞면 0 뒷면 1 
+이걸 256번
+256bit
+
+경우의 수가 2^256 = 10^77 정도가 되어서 렌덤 생성으로 인해 중복될 가능성은 희박하다.
+
+--------------------
+
+ 
+주로 블록체인에서 쓰는 암호화는 secp256k1 이거라고 한다.
+
+렌덤한 키 값을 생성하기 위해서 secp256k1 이거를 썼고
+
+console.log(ec.genKeyPair().getPrivate().toString(16).toUpperCase());
+이렇게 쓰면 16진수로 반환이 되는 키값을 생성할 수 있다.
+
+--------------
+
+함수를 하나 만들 것이다.
+
+// key 생성하는 함수
+function generatorPrivateKey(){
+    const KeyPair = ec.genKeyPair()
+    const privateKey = KeyPair.getPrivate()
+    return privateKey.toString(16).toUpperCase()
+}
+
+console.log(generatorPrivateKey());
+
+단순히 키를 생성한거고 아무런 의미는 없다..
+
+지갑이라는 뜻은 무언가를 넣는 공간.
+
+
+db 로 치면 
+id 값이 key 값이라는것이다.
+content
+date
+
+그래서 id 누구의 content 를 찾고 싶다면 볼 수 있듯이
+지갑의 history 를 볼 수 있도록 해야한다.
+
+------------
+
+const fs = require('fs')
+
+이걸 추가
+
+db를 사용하는 이유? - 파일로만 관리하기 힘들어서..
+
+코인은 다시 옛날로 돌아가서 파일로 관리한다고 보면 된다.
+
+뭔가 저장하는 곳(=파일) 이 필요함
+
+이 컴퓨터에서 현재 파일이 server.js 를 실행한다는 것은 
+내 컴퓨터 한대가 node 가 되는것이고
+채굴을 해서 마이닝이 되면 block 생성되고
+다른 컴이랑 연결하려면 addPeers
+
+그 사이에 내가 생성한 블럭에 코인이라는게 있을텐데
+그 생성한 내용을 지갑에 담아서 내용을 볼 수 있게 해준다.
+
+그 사람의 지갑 주소를 실행할때마다 다르게 보여준다. - 이건 지갑이 아니다.
+주소값이 항상 같아야함
+그래서 렌덤생성한 값을 파일에 저장해줘야 한다는 것.
+
+최종 목표 : 
+node server.js 가 실행되면 특정 폴더에 특정 파일에 
+키 값이 나올 수 있도록 할 것이다.
+keyfile을 저장함
+
+node server.js 를 하면 
+http 인터페이스를 통해서 3000번에 /address 로 요청하게 되면 (http://localhost:3000/address)
+키값(generatorPrivateKey)을 보여줄 수 있도록 해줄 것이다. <- keyfile을 읽어서 보여줌
+
+--------------
+node server.js 했는데
+특정폴더 = wallet 
+하나의 변수라고 생각하고
+
+wallet이 있는지 -> fs.existsSync("wallet/")
+있으면 wallet/ 생성 안함
+없으면 wallet/ 폴더 생성함
+mkdir 로 생성 (찾을 수도 있고 만들 수도 있음)
+
+구현해보자!
+---------------
+
+
+function initWallet(){
+    console.log( fs.existsSync("wallet/") )  // 파일이 있으면 true 없으면 false 로 반환해준다
+}
+
+initWallet()
+
+$ node wallet.js
+-> 없어서 false 로 나옴
+--------------------
+function initWallet() {
+    if (!fs.existsSync("wallet/")) {     // 값이 true 여야 if 문이 실행되니까 앞에 ! 붙여줌
+        fs.mkdirSync("wallet/")     // 폴더를 생성해준다.
+    }
+}
+
+initWallet()
+
+$node wallet.js
+하니까 src/wallet 폴더가 생성됨
+
+생성한 key 값을 파일로 저장하려구.. 폴더를 생성한거임
+
+특정폴더 wallet/default 라고 만들어서 어떤 키 값인지 알려줘야함
+
+wallet이 있는지 -> fs.existsSync("wallet/default")
+있으면 wallet/default 생성 안함
+없으면 wallet/default 폴더 생성함
+
+const privateKeyLocation = "wallet/"+"default"
+
+이렇게 하면 하드코딩으로 폴더명을 바꿔줘야 하므로 환경변수에 저장해주기
+
+const privateKeyLocation = "wallet/"+(process.env.PRIVATE_KEY || "default")
+이렇게 해주면 된다.
+
+폴더만 만들면 되는게 아니라 파일까지 생성해야 함
+
+const privateFile = privateKeyLocation+"/private_key"
+혹은
+const privateFile = `${privateKeyLocation}/private_key`
+이렇게 선언해줘서
+내가 만들 파일을 지정해준거임
+
+# default 폴더도 생성해준다.
+if(!fs.existsSync(privateKeyLocation)){
+    fs.mkdirSync(privateKeyLocation)
+}
+
+# key 파일 생성
+// 파일이 있는가 없는가를 체크해봐야함
+if(!fs.existsSync(privateFile)){
+    // 디렉토리를 만드는게 아니라서 mkdirSync 가 필요없음
+    console.log(`주소값 키값을 생성중입니다...`);
+    const newPrivateKey = generatorPrivateKey()     //key 를 생성해서 변수에 담음
+    
+    // 파일 생성
+    fs.writeFileSync(privateFile,newPrivateKey)
+    // 첫번째 인자값은 경로+파일명, 두번째 인자값은 파일 내용들
+    console.log(`개인 키 생성이 완료되었습니다`);
+}
+
+하고 node wallet
+그럼 생성됨
+
+--------------------------
+
+파일을 읽어서 갖다 쓰는것도 해놔야함
+
+파일을 읽는데 읽는 순간 우리가 알 수 없는 언어로 읽게 됨
+그래서 잘라서 읽기를 시도함
+
+// 저 파일을 읽어서 출력하는 함수
+function getPrivateFromWallet(){
+    // 파일을 읽어서 가져와서 buffer 에 넣을거임
+    const buffer = fs.readFileSync(privateFile)
+    // 첫번째 인자값은 경로+파일명
+    //console.log(buffer.toString());    // 알 수 없는 Buffer ~ 형태로 가져옴
+    return buffer.toString()
+}
+getPrivateFromWallet()
+console.log(getPrivateFromWallet());
+
+----------------------
+블록체인에는 키가 두개 존재함
+공개키 와 비밀키
+
+내가 나임을 증명하는 것은 비밀키로 인증
+비밀키는 공개되면 내 지갑을 해킹할 수 있음..(특별한 권한까지 다 있는 키-공인인증서)
+
+공개 키는 내 히스토리 정도만 다 보낼 수 있음 (계좌번호)
+
+비밀 키를 갖고 내용 조작해서 공개키를 만드는 경우가 대부분이다.
+
+
+function getPublicFromWallet(){
+    const privateKey = getPrivateFromWallet()   // 일단 비밀키를 가져오고
+    const key = ec.keyFromPrivate(privateKey,"hex") // ec 안에 있는 내장함수 keyFromPrivate()
+    return key.getPublic().encode("hex")            // ec 안에 있는 내장함수 getPublic()
+}
+
+console.log(getPublicFromWallet());
+
+-----------------------
+
+module.exports = {
+    initWallet,
+    getPublicFromWallet,
+}
+
+이렇게 내보내고 사용해보자
+
+[server.js]
+const wl = require('./wallet')
+
+
+app.get('/address',(req,res)=>{
+    const address = wl.getPublicFromWallet()
+    res.send({address})
+})
+
+맨 아래로 가서  
+wl.initWallet()     // 저함수가 실행되면 파일, 키값 생성
+
+
+$ node server
+
+팽귄에서
+$ curl http://localhost:3000/address
+
+하면 
+{
+    "address": "04afd5d3486de820dd40ffb24437c369c676f2f799bf8dcf04c9ec8dfe22fd2ef38b167055de22c99cde26f63e9918aae8e5292fd90b2ca6089724d490fc7aa04b"
+}
+이런게 나온다.
+
+--------------------
+여기까지가 구조체, 네트워크 구성/.?
+header 와 body 안에 어떻게 내용을 만드는지 중점적으로 봤고
+블럭은 이런 형태를 띄고 있다...
+우리는 객체라고 부르지만
+다른 언어에서는 이런걸 구조체라고 부르기도 한다
+이걸 블록이라고 하고
+연결하는 작업이 블록체인이다.
+----------------------
+
+중요한건 header 부분이다.
+여기에는 규칙이 있고
+코인마다 header의 내용이 다소 달라진다.
+body는 어떻게 data를 넣냐에 따라 달라지고
+
+let Blocks 부분도 조금씩 달라질 수 있다.
+우리가 블록을 생성할때마다 순차적으로 블록을 넣었다.
+블록을 저장하는 공간을 배열이 아닌 또 객체로 저장해서..
+데이터를 저장하는 알고리즘에 의해서 저장을 한다.
+배열은 너무 순차적.. 맨 처음에서 끝까지 가는 경우가 경로가 너무 길다.
+내용을 찾을때 정렬 알고리즘을 이용해서 내용을 찾는,,
+---------------
+
+블록 체인으로 개발 한다는건 도대체 무엇이냐?
+
+- 사용자가 있기 때문에 개발하는것인데..
+블록체인은 사용자에게 어떤 편의성을 제공해 줄 수 있는가?
+->  탈 중앙
+    데이터의 신뢰성
+
+탈 중앙화 이지만 네트워크를 빌려다가 사용함
+
+어떻게 배워야 활용도가 높은지에 포커스를 맞춰보자
+------------------------
+
+# 암호화폐
+
+-> 빗썹, 업비트에 상장되어있는 코인들을 말한다
+비트코인 
+라이트코인 
+비트코인캐시 
+이더리움 
+도지
+바나나톡
+
+각각의 차이점이 있다.
+
+비트코인과 비트코인캐시
+비트코인 - 네트워크를 구성 + 모든 것을 다 만들었다.
+비트코인캐시 - git clone 이름 변경!
+
+라이트코인 - 비트코인 로직 그대로 C++ 로 만든거임
+           - 그나마 친화적인 얘를 빌드 해볼 거임
+
+
+채굴에 대한 환상..? 이런게 있다
+- 채굴은 연산을 하는것이고 코인별로 문제를 푸는 코드가 공개되어있을것.
+그걸 돌려놓으면 되는거임
+
+---------------------------
+# 사람들이 암호화폐를 왜 만들었을까?
+
+알트코인 (비트코인을 제외한 나머지 녀석들)
+: 투자 받기 위한
+
+- 코드를 공개하는 것이 원칙!!
+------------------------------
+블록체인을 공개하는 것은 이더리움을 배운다는것..
+
+이더리움 - 네트워크 구성.. 모든것을 다 만들었다
+         - 이더리움 네트워크를 빌려다가 만든 코인들이 많다.
+         - 내가 만든 코인 100개당 이더리움 1개 : 같은 서버를 쓰기 때문에 가능한것
+도지와 바나나톡도 이더리움 네트워크를 기반으로 한 코인이다.
+
+-----------------
+코인 vs 토큰
+
+# 코인 : 따로 네트워크를 구성하고 있는 
+# 토큰 : 어떤한 기반으로 만든
+
+바나나톡:
+ERC20(이더리움이 만든 프로토콜) 기반으로 된 토큰이다
+네트워크를 빌려다 쓰는거기 때문에 개발이 쉽다.
+
+# ERC20 토큰 만들기 과제...
+
+이미 이더리움을 돌리고 있는 사람들이 참여하기 때문에 탈 중앙이 되어있는 상태
+------------------------
+
+우리는 블록체인으로 무엇을 개발할 것 인가?
+
+- 대부분 코인개발 보다는 블록체인을 택배시스템이라던지.. 이런거를 만들려고 한다.
+- 무조건 이더리움 기반으로 만들려고 할 것이다.
+
+---------------------------------
+이더리움 하면 솔리디티 언어를 빼놓을 수 없다.
+솔리디티 는 java 기반으로 한 언어다.
+
+솔리디티를 해석해주는 언어가 vm vertual machine 가상머신이 해석해줌
+
+그래서 솔리디티 언어를 배워야 하는데..
+
+
+web3.js 
+: 이더리움과 web을 연결시켜주는 라이브러리
+- 그래서 프론트화면에서 뿌려줄 수 있음
+-> dapp
+즉 web3를 사용해서 API 같은걸 활용...
+블록체인 정보를 뿌린다.
+------------------------
+
+메인넷과 테스트넷
+
+메인넷은 실서버
+테스트넷은 개발서버
+
+--------------------
+이더리움
+ERC20
+이 두개가 중요..
+------------------
+과제...
+자료조사..
+즉 블록체인은 까다로왔던게 개념잡는거..
+
+# 메인넷, 테스트넷
+# 메타마스크
+# 토큰 계열 코인 - 즉 상장한 토큰들 3가지
+# ERC20, ERC 721
+
+이거 4가지중 한가지 이상
+메인넷 테스트넷은 카운트 안함 무조건 해야하고
+ERC20, ERC721 조사해오기
+추천..
+
+----------------
+내일은 라이트코인 빌드 기초작업
+월요일 라이트코인 빌드

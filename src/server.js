@@ -4,6 +4,7 @@ const port = process.env.PORT || 3000
 const bodyParser = require('body-parser')
 const bc = require('./block0902')
 const ws = require('./network')
+const wl = require('./wallet')
 
 app.use(bodyParser.json())
 
@@ -51,7 +52,14 @@ app.get('/stop',(req,res)=>{
     process.exit(0)
 })
 
+// curl http://localhost:3000/address
+app.get('/address',(req,res)=>{
+    const address = wl.getPublicFromWallet()
+    res.send({address})
+})
 
+
+wl.initWallet()
 ws.wsInit()     // server 열리면 웹소켓 서버도 열리는것
 app.listen(port,()=>{
     console.log(`server open ${port}`);
